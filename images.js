@@ -5,7 +5,7 @@
   Replace product and founder images with approved brand photography before launch.
 */
 window.HC_IMAGES = {
-  logo: "", // Use Michelle's supplied transparent PNG or SVG here when available.
+  logo: "images/logo.jpg", // Use Michelle's supplied transparent PNG or SVG here when available.
   hero: "images/hero.jpg",
   product: "images/oil.jpg",
   productDetail: "images/whole.jpeg",

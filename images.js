@@ -8,7 +8,7 @@ window.HC_IMAGES = {
   logo: "", // Use Michelle's supplied transparent PNG or SVG here when available.
   hero: "images/hero.jpg",
   product: "images/oil.jpg",
-  productDetail: "images/detail.jpg",
+  productDetail: "images/whole.jpeg",
   stepPart: "images/make.jpg",
   stepApply: "https://images.squarespace-cdn.com/content/v1/5db99f69b9e8d151704d0405/d8d26204-c10d-45b7-a940-90ca6fe88ebc/woman-applying-scalp-treatment-oil-for-healthy-scalp-and-hair-growth.jpeg",
   stepMassage: "images/massage.webp",

@@ -17,10 +17,16 @@ export const handler = async event => {
     const email = normaliseEmail(body.email);
     const phone = cleanString(body.phone, 25);
     const address = cleanString(body.address, 500);
+    const city = cleanString(body.city, 100);
+    const country = cleanString(body.country, 100);
+    const countryCode = cleanString(body.countryCode, 2).toUpperCase();
+    const region = cleanString(body.region, 100);
+    const postalCode = cleanString(body.postalCode, 30);
     const note = cleanString(body.note, 500);
     const mode = body.mode === 'wholesale' ? 'wholesale' : body.mode === 'retail' ? 'retail' : '';
-    if (!name || name.length < 2 || !isEmail(email) || phone.length < 7 || address.length < 5 || !mode) {
-      return response(400, { error: 'Please check your name, email, phone number and delivery address.' });
+    const validCountryCode = /^[A-Z]{2}$/.test(countryCode);
+    if (!name || name.length < 2 || !isEmail(email) || phone.length < 7 || address.length < 5 || !city || !country || !validCountryCode || !region || (countryCode !== 'GH' && !postalCode) || !mode) {
+      return response(400, { error: 'Please check your contact and delivery details. International orders require a postal code.' });
     }
     const { db, FieldValue } = getFirebase();
     const counterRef = db.collection('counters').doc('orders');
@@ -35,21 +41,26 @@ export const handler = async event => {
       if (!quantity) throw new Error(mode === 'wholesale' ? `Wholesale orders must be whole numbers of ${min} bottles or more.` : 'Please choose a whole-number quantity from 1 to 1000.');
       const price = Number(mode === 'wholesale' ? settings.wholesalePrice : settings.retailPrice);
       if (!Number.isFinite(price) || price <= 0) throw new Error('The product price is not configured correctly. Please contact the store.');
-      if (Number.isFinite(settings.inventory) && Number(settings.inventory) < quantity) throw new Error('There is not enough stock available for this quantity. Please reduce the quantity or contact the store.');
+      const tracksInventory = settings.inventory !== null && settings.inventory !== undefined && Number.isFinite(Number(settings.inventory));
+      const stockBefore = tracksInventory ? Number(settings.inventory) : null;
+      if (tracksInventory && stockBefore < quantity) throw new Error('There is not enough stock available for this quantity. Please reduce the quantity or contact the store.');
       const total = Math.round(price * quantity * 100) / 100;
       const amountSubunits = Math.round(total * 100);
       const orderSeq = Number(counterSnap.exists ? counterSnap.data().lastNumber || 0 : 0) + 1;
       const orderNumber = `HC-${String(orderSeq).padStart(5, '0')}`;
       const orderRef = db.collection('orders').doc(orderNumber);
       const order = {
-        orderNumber, orderSeq, name, email, phone, address, note,
+        orderNumber, orderSeq, name, email, phone, address, city, country, countryCode, region, postalCode, note,
         mode, productName: settings.productName || 'Hair Confidante Hair Oil',
         quantity, unitPrice: price, total, amountSubunits, currency: 'GHS',
         status: 'awaiting_payment', paymentStatus: 'pending', paymentReference: reference,
+        deliveryFee: null, inventoryReserved: tracksInventory, inventoryReservationReleased: false,
+        inventoryReservationExpiresAt: tracksInventory ? new Date(Date.now() + 45 * 60 * 1000) : null,
         createdAt: FieldValue.serverTimestamp(), updatedAt: FieldValue.serverTimestamp(),
         history: [{ status: 'awaiting_payment', at: new Date().toISOString() }]
       };
       tx.set(counterRef, { lastNumber: orderSeq, updatedAt: FieldValue.serverTimestamp() }, { merge: true });
+      if (tracksInventory) tx.set(settingsRef, { inventory: stockBefore - quantity, updatedAt: FieldValue.serverTimestamp() }, { merge: true });
       tx.create(orderRef, order);
       return { orderNumber, order, orderRefId: orderRef.id, amountSubunits, quantity, price };
     });
@@ -62,7 +73,18 @@ export const handler = async event => {
         metadata: { order_number: prepared.orderNumber, order_mode: mode, quantity: prepared.quantity, custom_fields: [{ display_name: 'Order Number', variable_name: 'order_number', value: prepared.orderNumber }] }
       });
     } catch (error) {
-      await db.collection('orders').doc(prepared.orderNumber).update({ paymentStatus: 'initialization_failed', status: 'awaiting_payment', updatedAt: FieldValue.serverTimestamp(), paymentError: cleanString(error.message, 200) });
+      const failedOrderRef = db.collection('orders').doc(prepared.orderNumber);
+      await db.runTransaction(async tx => {
+        const [orderSnap, currentSettingsSnap] = await Promise.all([tx.get(failedOrderRef), tx.get(settingsRef)]);
+        if (!orderSnap.exists) return;
+        const currentOrder = orderSnap.data();
+        const patch = { paymentStatus: 'initialization_failed', status: 'awaiting_payment', updatedAt: FieldValue.serverTimestamp(), paymentError: cleanString(error.message, 200), inventoryReserved: false, inventoryReservationReleased: Boolean(currentOrder.inventoryReserved) };
+        if (currentOrder.inventoryReserved && currentSettingsSnap.exists) {
+          const currentSettings = currentSettingsSnap.data();
+          if (Number.isFinite(Number(currentSettings.inventory))) tx.set(settingsRef, { inventory: Number(currentSettings.inventory) + Number(currentOrder.quantity || 0), updatedAt: FieldValue.serverTimestamp() }, { merge: true });
+        }
+        tx.update(failedOrderRef, patch);
+      });
       throw error;
     }
     await db.collection('orders').doc(prepared.orderNumber).update({ paystackAccessCode: paystack.data?.access_code || null, updatedAt: FieldValue.serverTimestamp() });

@@ -70,6 +70,15 @@ export const handler = async event => {
       return response(200, { ok: true, message: 'Product settings saved.' });
     }
 
+    if (action === 'update-delivery-settings') {
+      const daysRaw = Array.isArray(body.dispatchDays) ? body.dispatchDays : [];
+      const dispatchDays = [...new Set(daysRaw.map(Number).filter(day => Number.isInteger(day) && day >= 0 && day <= 6))].sort((a, b) => a - b);
+      const estimatedDeliveryDays = validWholeQuantity(body.estimatedDeliveryDays, 1, 21);
+      if (!dispatchDays.length || !estimatedDeliveryDays) return response(400, { error: 'Select at least one delivery day and an estimate from 1 to 21 days.' });
+      await db.collection('settings').doc('store').set({ dispatchDays, estimatedDeliveryDays, updatedAt: FieldValue.serverTimestamp(), updatedBy: adminUser.email }, { merge: true });
+      return response(200, { ok: true, message: 'Delivery settings saved.' });
+    }
+
     if (action === 'update-order-status') {
       const orderNumber = cleanString(body.orderNumber, 30).toUpperCase();
       const status = cleanString(body.status, 30).toLowerCase();

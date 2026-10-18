@@ -2,6 +2,8 @@ import { response } from './_shared/http.js';
 
 export const handler = async event => {
   if (event.httpMethod !== 'GET') return response(405, { error: 'Method not allowed.' });
+  const elfsightWidgetId = String(process.env.ELFSIGHT_WIDGET_ID || '').trim();
+  if (elfsightWidgetId && /^[a-z0-9-]{16,80}$/i.test(elfsightWidgetId)) return response(200, { configured: true, provider: 'elfsight', elfsightWidgetId, posts: [] });
   const userId = process.env.INSTAGRAM_USER_ID;
   const token = process.env.INSTAGRAM_ACCESS_TOKEN;
   if (!userId || !token || userId === 'REPLACE_ME' || token === 'REPLACE_ME') return response(200, { configured: false, posts: [] });

@@ -30,7 +30,14 @@ export const handler = async event => {
         const order = orderSnap.data();
         if (order.paymentStatus === 'success' || order.paymentStatus === 'failed') return false;
         orderForEmail = { ...order, orderNumber: order.orderNumber || found.ref.id };
-        tx.update(found.ref, { paymentStatus: 'failed', paymentFailureMessage: String(payload.data.gateway_response || payload.data.message || 'Payment was not confirmed').slice(0, 240), updatedAt: FieldValue.serverTimestamp() });
+        if (order.inventoryReserved) {
+          const settingsRef = db.collection('settings').doc('store');
+          const settingsSnap = await tx.get(settingsRef);
+          if (settingsSnap.exists && settingsSnap.data().inventory !== null && settingsSnap.data().inventory !== undefined && Number.isFinite(Number(settingsSnap.data().inventory))) {
+            tx.set(settingsRef, { inventory: Number(settingsSnap.data().inventory) + Number(order.quantity || 0), updatedAt: FieldValue.serverTimestamp() }, { merge: true });
+          }
+        }
+        tx.update(found.ref, { paymentStatus: 'failed', inventoryReserved: false, inventoryReservationReleased: Boolean(order.inventoryReserved), paymentFailureMessage: String(payload.data.gateway_response || payload.data.message || 'Payment was not confirmed').slice(0, 240), updatedAt: FieldValue.serverTimestamp() });
         return true;
       });
       if (didUpdate && orderForEmail) {

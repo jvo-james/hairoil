@@ -1,7 +1,11 @@
-import { response, parseBody, cleanString } from './_shared/http.js';
+import { response, parseBody, cleanString, toISO } from './_shared/http.js';
 import { getFirebase } from './_shared/firebase.js';
 import { findOrderByReference, paystackRequest, completePaidOrder } from './_shared/payments.js';
 import { sendBrandedEmail, notifyAdmin } from './_shared/email.js';
+
+function receiptOrder(order) {
+  return { orderNumber: order.orderNumber, name: order.name, email: order.email, phone: order.phone, address: order.address, city: order.city, country: order.country, countryCode: order.countryCode, region: order.region, postalCode: order.postalCode, note: order.note, mode: order.mode, productName: order.productName, quantity: Number(order.quantity || 1), unitPrice: Number(order.unitPrice || 0), total: Number(order.total || 0), currency: order.currency || 'GHS', paymentReference: order.paymentReference, paymentChannel: order.paymentChannel || 'Paystack', status: order.status || 'preparing', createdAt: toISO(order.createdAt), paidAt: toISO(order.paidAt) };
+}
 
 export const handler = async event => {
   if (event.httpMethod !== 'POST') return response(405, { error: 'Method not allowed.' });
@@ -12,7 +16,7 @@ export const handler = async event => {
     const { db } = getFirebase();
     const found = await findOrderByReference(db, reference);
     if (!found) return response(404, { error: 'We could not find an order for this payment reference.' });
-    if (found.data.paymentStatus === 'success') return response(200, { verified: true, orderNumber: found.data.orderNumber, status: found.data.status });
+    if (found.data.paymentStatus === 'success') return response(200, { verified: true, orderNumber: found.data.orderNumber, status: found.data.status, order: receiptOrder(found.data) });
     const verification = await paystackRequest(`/transaction/verify/${encodeURIComponent(reference)}`);
     const txn = verification.data;
     if (!txn || txn.status !== 'success') return response(202, { verified: false, pending: true, orderNumber: found.data.orderNumber, message: 'Payment is not confirmed yet. Please give it a moment and check again.' });
@@ -24,7 +28,7 @@ export const handler = async event => {
         notifyAdmin('purchase_admin', { order })
       ]);
     }
-    return response(200, { verified: true, orderNumber: result.order.orderNumber, status: result.order.status });
+    return response(200, { verified: true, orderNumber: result.order.orderNumber, status: result.order.status, order: receiptOrder(result.order) });
   } catch (error) {
     return response(error.statusCode || 500, { error: error.message || 'Payment verification could not be completed.' });
   }

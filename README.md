@@ -64,7 +64,7 @@ All email sends happen in Netlify Functions. Templates cover order received/prep
 
 ### 4. Live Instagram gallery (Elfsight)
 
-Create an Instagram Feed widget in your Elfsight dashboard, connect the Hair Confidante Instagram account, and add the widget ID as `ELFSIGHT_WIDGET_ID` in Netlify environment variables. The homepage loads Elfsight's platform script only after a valid widget ID is returned. The uploaded project did not include a widget ID, so the live feed still needs that account-specific value before publishing. Until then, the site shows clearly labelled editorial preview images.
+Create an Instagram Feed widget in your Elfsight dashboard, connect the Hair Confidante Instagram account, and the configured widget ID is `dbac3e54-59a3-4fac-887f-af838eb68133`. The homepage loads Elfsight's platform script after the feed endpoint returns this ID. You can override it by setting `ELFSIGHT_WIDGET_ID` in Netlify environment variables. Confirm the widget is published and connected to the intended Instagram account before launch.
 
 ### 5. Real brand assets
 

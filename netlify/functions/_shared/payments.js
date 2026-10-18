@@ -40,7 +40,11 @@ export async function completePaidOrder({ db, orderRef, transactionData }) {
     const settings = settingsSnap.exists ? settingsSnap.data() : {};
     let inventoryShortfall = false;
     const stock = Number(settings.inventory);
-    if (settings.inventory !== null && settings.inventory !== undefined && Number.isFinite(stock)) {
+    const alreadyReserved = order.inventoryReserved === true;
+    if (!alreadyReserved && !order.inventoryReservationReleased && settings.inventory !== null && settings.inventory !== undefined && Number.isFinite(stock)) {
+      if (stock < Number(order.quantity)) inventoryShortfall = true;
+      tx.set(settingsRef, { inventory: Math.max(0, stock - Number(order.quantity)), updatedAt: FieldValue.serverTimestamp() }, { merge: true });
+    } else if (!alreadyReserved && order.inventoryReservationReleased && settings.inventory !== null && settings.inventory !== undefined && Number.isFinite(stock)) {
       if (stock < Number(order.quantity)) inventoryShortfall = true;
       tx.set(settingsRef, { inventory: Math.max(0, stock - Number(order.quantity)), updatedAt: FieldValue.serverTimestamp() }, { merge: true });
     }
@@ -52,6 +56,7 @@ export async function completePaidOrder({ db, orderRef, transactionData }) {
       paidAt: FieldValue.serverTimestamp(),
       updatedAt: FieldValue.serverTimestamp(),
       inventoryShortfall,
+      inventoryReserved: false, inventoryReservationCommitted: alreadyReserved,
       paymentChannel: transactionData.channel || null,
       paystackTransactionId: String(transactionData.id || ''),
       history: [...(Array.isArray(order.history) ? order.history : []), { status: 'preparing', at: nowIso }]
@@ -62,6 +67,7 @@ export async function completePaidOrder({ db, orderRef, transactionData }) {
       paidAt: updated.paidAt,
       updatedAt: updated.updatedAt,
       inventoryShortfall,
+      inventoryReserved: false, inventoryReservationCommitted: alreadyReserved,
       paymentChannel: updated.paymentChannel,
       paystackTransactionId: updated.paystackTransactionId,
       history: updated.history

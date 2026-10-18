@@ -1,12 +1,14 @@
 export const DEFAULT_SETTINGS = {
   productName: 'Hair Confidante Hair Oil',
-  productDescription: 'A hair oil created to be part of your regular hair and scalp care routine. Apply in sections, then massage gently into the scalp.',
+  productDescription: 'A unisex hair oil designed for regular hair and scalp care. Apply a small amount along the scalp in sections and massage gently with your fingertips.',
   retailPrice: Number(process.env.RETAIL_PRICE_GHS || 70),
   wholesalePrice: Number(process.env.WHOLESALE_PRICE_GHS || 60),
   wholesaleMinQty: Number(process.env.WHOLESALE_MIN_QTY || 10),
   bottleSize: '100 mL',
   inventory: null,
   productImageUrl: '',
+  dispatchDays: [1, 2, 3, 4, 5, 6],
+  estimatedDeliveryDays: 3,
   updatedAt: null
 };
 
@@ -24,7 +26,9 @@ export function publicSettings(settings) {
     wholesaleMinQty: Math.max(1, Math.floor(Number(settings.wholesaleMinQty) || 10)),
     bottleSize: settings.bottleSize || '100 mL',
     inventory: Number.isFinite(settings.inventory) ? Number(settings.inventory) : null,
-    productImageUrl: settings.productImageUrl || ''
+    productImageUrl: settings.productImageUrl || '',
+    dispatchDays: Array.isArray(settings.dispatchDays) ? settings.dispatchDays.map(Number).filter(day => Number.isInteger(day) && day >= 0 && day <= 6) : [1, 2, 3, 4, 5, 6],
+    estimatedDeliveryDays: Math.max(1, Math.min(21, Math.floor(Number(settings.estimatedDeliveryDays) || 3)))
   };
 }
 

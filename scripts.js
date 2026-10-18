@@ -43,20 +43,37 @@
     region._timer = setTimeout(() => { region.innerHTML = ''; }, 4800);
   }
 
-  async function withButtonLoading(button, task, loadingLabel = 'Please wait') {
-    if (!button || button.classList.contains('is-loading')) return;
-    const original = button.innerHTML;
+  function showButtonLoading(button, loadingLabel = 'Please wait') {
+    if (!button || button.classList.contains('is-loading')) return false;
+    button.dataset.loadingOriginal = button.innerHTML;
     button.disabled = true;
     button.classList.add('is-loading');
     button.setAttribute('aria-busy', 'true');
     button.innerHTML = `<span class="button-spinner"><span class="spinner ${button.classList.contains('button-light') ? 'spinner-dark' : 'spinner-light'}"></span><span>${escapeHTML(loadingLabel)}</span></span>`;
-    try { return await task(); }
-    finally {
-      button.innerHTML = original;
-      button.disabled = false;
-      button.classList.remove('is-loading');
-      button.removeAttribute('aria-busy');
+    return true;
+  }
+
+  function restoreButtonLoading(button) {
+    if (!button) return;
+    if (button.dataset.loadingOriginal !== undefined) {
+      button.innerHTML = button.dataset.loadingOriginal;
+      delete button.dataset.loadingOriginal;
     }
+    button.disabled = false;
+    button.classList.remove('is-loading');
+    button.removeAttribute('aria-busy');
+  }
+
+  // If checkout navigates away and the browser later restores this page from
+  // its back/forward cache, clear any navigation spinner left in the restored DOM.
+  window.addEventListener('pageshow', () => {
+    document.querySelectorAll('button[data-loading-original], button.is-loading').forEach(restoreButtonLoading);
+  });
+
+  async function withButtonLoading(button, task, loadingLabel = 'Please wait') {
+    if (!showButtonLoading(button, loadingLabel)) return;
+    try { return await task(); }
+    finally { restoreButtonLoading(button); }
   }
 
   function setBodyOverlay(isOpen) {
@@ -67,7 +84,7 @@
     const homeClass = document.body.dataset.page === 'home' ? ' site-header-home' : '';
     return `<header class="site-header${homeClass}"><div class="header-inner">
       <div class="header-side"><button class="menu-trigger" type="button" data-open-menu aria-label="Open navigation menu" aria-expanded="false"><span class="menu-bars" aria-hidden="true"><span></span><span></span></span><span class="menu-label">Menu</span></button></div>
-      <a class="brand-lockup header-brand-lockup" href="index.html" aria-label="Hair Confidante by MB home"><span class="header-monogram" aria-hidden="true">HC</span><span class="header-brand-copy"><span class="brand-name">HAIR CONFIDANTE</span><span class="brand-by">by MB</span></span></a>
+      <a class="brand-lockup header-brand-lockup" href="index.html" aria-label="Hair Confidante by MB home"><img class="header-logo-img" src="${escapeHTML(IMAGES.logoMark || IMAGES.logo || 'images/logo.jpg')}" alt="" width="42" height="42"><span class="header-brand-copy"><span class="brand-name">HAIR CONFIDANTE</span><span class="brand-by">by MB</span></span></a>
       <div class="header-side header-side-right"><button class="track-trigger" type="button" data-open-track aria-label="Track order" title="Track order"><i class="fa-solid fa-box" aria-hidden="true"></i></button></div>
     </div></header>`;
   }
@@ -83,7 +100,7 @@
 
   function overlayMarkup() {
     return `<div class="overlay-backdrop" data-overlay-backdrop></div>
-      <aside class="site-drawer site-drawer-menu" data-menu-drawer aria-label="Site navigation" aria-hidden="true"><div class="drawer-top"><div class="drawer-brand"><strong>HAIR CONFIDANTE</strong><small>by MB</small></div><button type="button" class="icon-button" data-close-overlays aria-label="Close menu"><i class="fa-solid fa-xmark"></i></button></div><p class="drawer-kicker">FIND YOUR WAY</p><nav class="menu-links"><a href="index.html">Home <i class="fa-solid fa-arrow-up-right-from-square"></i></a><a href="product.html">Hair oil <i class="fa-solid fa-arrow-up-right-from-square"></i></a><a href="wholesale.html">Wholesale <span>FOR BUSINESS</span></a><a href="index.html#how-to-use">How to use <i class="fa-solid fa-arrow-up-right-from-square"></i></a><a href="index.html#instagram">Instagram <i class="fa-solid fa-arrow-up-right-from-square"></i></a></nav><div class="drawer-footer">Questions? Call <a href="tel:0593231032">059 323 1032</a></div></aside>
+      <aside class="site-drawer site-drawer-menu" data-menu-drawer aria-label="Site navigation" aria-hidden="true"><div class="drawer-top"><div class="drawer-brand"><strong>HAIR CONFIDANTE</strong><small>by MB</small></div><button type="button" class="icon-button" data-close-overlays aria-label="Close menu"><i class="fa-solid fa-xmark"></i></button></div><p class="drawer-kicker">FIND YOUR WAY</p><nav class="menu-links"><a href="index.html">Home <i class="fa-solid fa-arrow-up-right-from-square"></i></a><a href="product.html">Hair oil <i class="fa-solid fa-arrow-up-right-from-square"></i></a><a href="wholesale.html">Wholesale <span>FOR BUSINESS</span></a><button type="button" class="menu-track-link" data-open-track>Track order <i class="fa-solid fa-box" aria-hidden="true"></i></button><a href="index.html#how-to-use">How to use <i class="fa-solid fa-arrow-up-right-from-square"></i></a><a href="index.html#instagram">Instagram <i class="fa-solid fa-arrow-up-right-from-square"></i></a></nav><div class="drawer-footer">Questions? Call <a href="tel:0593231032">059 323 1032</a></div></aside>
       <aside class="site-drawer site-drawer-track" data-track-drawer aria-label="Track your order" aria-hidden="true"><div class="drawer-top"><div class="drawer-brand"><strong>ORDER TRACKER</strong><small>Track your order status.</small></div><button type="button" class="icon-button" data-close-overlays aria-label="Close order tracker"><i class="fa-solid fa-xmark"></i></button></div><div class="track-drawer-heading"><p class="eyebrow">ORDER TRACKING</p><h2>Where is your<br><em>order?</em></h2><p>Enter the order number from your email and the email address used at checkout.</p></div><form class="track-form" data-track-form novalidate><label><span>Order number</span><input name="orderNumber" type="text" placeholder="HC-00001" autocapitalize="characters" maxlength="30" required></label><label><span>Email address</span><input name="email" type="email" placeholder="you@example.com" maxlength="160" required></label><button class="button button-dark button-full" type="submit"><span>Find my order</span><i class="fa-solid fa-arrow-right"></i></button><div class="checkout-alert" data-track-error role="status" hidden></div></form><div class="track-results" data-track-results hidden></div></aside>
       <div class="modal-wrap" data-review-modal aria-hidden="true"><div class="modal-panel" role="dialog" aria-modal="true" aria-labelledby="review-modal-title"><div class="modal-head"><div><p class="eyebrow">A NOTE FROM YOU</p><h2 id="review-modal-title">Leave a review.</h2></div><button type="button" class="icon-button" data-close-review aria-label="Close review form"><i class="fa-solid fa-xmark"></i></button></div><div class="modal-body"><form class="review-form" data-review-form novalidate><div><div class="rating-prompt"><span>Your rating</span><span class="rating-helper" data-rating-helper>Choose a star rating</span></div><div class="rating-stars" role="radiogroup" aria-label="Rate the product" data-rating-stars>${[1,2,3,4,5].map(n=>`<button type="button" role="radio" aria-checked="false" data-rating="${n}" aria-label="${n} star${n===1?'':'s'}">★</button>`).join('')}</div><input type="hidden" name="rating" value=""></div><label><span>Your name</span><input type="text" name="name" autocomplete="name" minlength="2" maxlength="70" placeholder="How should we credit you?" required></label><label><span>Email address</span><input type="email" name="email" autocomplete="email" maxlength="160" placeholder="We will not publish this" required></label><label><span>Your experience</span><textarea name="review" rows="4" minlength="12" maxlength="1200" placeholder="Tell us what you noticed after using the oil..." required></textarea></label><input class="honeypot" type="text" name="website" tabindex="-1" autocomplete="off" aria-hidden="true"><button type="submit" class="button button-dark button-full"><span>Send my review</span><i class="fa-solid fa-arrow-right"></i></button><p style="margin:0;color:var(--ink-faint);font-size:10px">Reviews are checked before they appear. Share your own honest experience.</p></form><div class="review-success" data-review-success hidden><span class="success-icon"><i class="fa-solid fa-check"></i></span><h3>That means a lot.</h3><p style="color:var(--ink-soft);font-size:12px">Your review has been received and is waiting for approval.</p><button type="button" class="button button-dark" data-close-review>Lovely, thanks</button></div></div></div></div>
       <div class="modal-wrap" data-contact-modal aria-hidden="true"><div class="modal-panel" role="dialog" aria-modal="true" aria-labelledby="contact-modal-title"><div class="modal-head"><div><p class="eyebrow">WE ARE LISTENING</p><h2 id="contact-modal-title">Send a note.</h2></div><button type="button" class="icon-button" data-close-contact aria-label="Close contact form"><i class="fa-solid fa-xmark"></i></button></div><div class="modal-body"><form class="review-form" data-contact-form novalidate><label><span>Your name</span><input type="text" name="name" autocomplete="name" minlength="2" maxlength="70" required></label><label><span>Email address</span><input type="email" name="email" autocomplete="email" maxlength="160" required></label><label><span>Phone number <small>Optional</small></span><input type="tel" name="phone" autocomplete="tel" maxlength="25"></label><label><span>Your message</span><textarea name="message" rows="4" minlength="10" maxlength="2000" required></textarea></label><input class="honeypot" type="text" name="company_site" tabindex="-1" autocomplete="off" aria-hidden="true"><div class="checkout-alert" data-contact-error role="status" hidden></div><button type="submit" class="button button-dark button-full"><span>Send message</span><i class="fa-solid fa-arrow-right"></i></button></form></div></div></div>`;
@@ -305,7 +322,7 @@
       const data = await api('get-public-data');
       settings = { ...SETTINGS_DEFAULTS, ...(data.settings || {}) };
       if (settings.productImageUrl && /^https?:\/\//i.test(settings.productImageUrl)) {
-        document.querySelectorAll('[data-img="product"], [data-img="productDetail"]').forEach(img => { img.src = settings.productImageUrl; });
+        document.querySelectorAll('[data-img="product"], [data-img="productHero"]').forEach(img => { img.src = settings.productImageUrl; });
       }
       document.querySelectorAll('[data-product-name]').forEach(el => { el.textContent = settings.productName || SETTINGS_DEFAULTS.productName; });
       document.querySelectorAll('[data-product-description]').forEach(el => { el.textContent = settings.productDescription || SETTINGS_DEFAULTS.productDescription; });
@@ -477,8 +494,7 @@
       const button = buttonEvent.currentTarget;
       const selected = Number(quantity?.value || 1);
       const q = Number.isInteger(selected) && selected >= 1 ? Math.min(selected, 1000) : 1;
-      button.innerHTML = `<span class="button-spinner"><span class="spinner spinner-light"></span><span>Opening checkout</span></span>`;
-      button.disabled = true;
+      if (!showButtonLoading(button, 'Opening checkout')) return;
       window.location.href = `checkout.html?mode=retail&quantity=${q}`;
     });
   }
@@ -504,8 +520,7 @@
       const amount = Number(quantity.value);
       if (!Number.isInteger(amount) || amount < minQty() || amount > 1000) { notify(`Enter a whole number from ${minQty()} to 1000.`, 'error'); quantity.focus(); return; }
       const button = form.querySelector('button[type="submit"]');
-      button.innerHTML = `<span class="button-spinner"><span class="spinner spinner-light"></span><span>Opening checkout</span></span>`;
-      button.disabled = true;
+      if (!showButtonLoading(button, 'Opening checkout')) return;
       window.location.href = `checkout.html?mode=wholesale&quantity=${amount}`;
     });
     updateWholesaleCalculator(form);

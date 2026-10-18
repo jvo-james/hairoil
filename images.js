@@ -1,6 +1,6 @@
 /*
   HAIR CONFIDANTE IMAGE LIBRARY
-  Every frontend image URL lives here so the art direction can be changed in one place.
+  Image paths and remote editorial placeholders used throughout the storefront.
   Unsplash photos below are editorial placeholders, not photographs of Michelle or her exact product.
   Replace product and founder images with approved brand photography before launch.
 */
@@ -13,7 +13,7 @@ window.HC_IMAGES = {
   stepApply: "https://images.squarespace-cdn.com/content/v1/5db99f69b9e8d151704d0405/d8d26204-c10d-45b7-a940-90ca6fe88ebc/woman-applying-scalp-treatment-oil-for-healthy-scalp-and-hair-growth.jpeg",
   stepMassage: "images/massage.webp",
   storyOne: "images/3.jpg",
-  storyTwo: "images/7.jpg",
+  storyTwo: "images/5.jpg",
   storyThree: "images/4.jpg",
   founder: "images/michelle.jpg",
   instagramFallback: [

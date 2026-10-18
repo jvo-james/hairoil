@@ -1,7 +1,7 @@
 (() => {
   'use strict';
   const IMAGES = window.HC_IMAGES || {};
-  const SETTINGS_DEFAULTS = { productName: 'Hair Confidante Hair Oil', productDescription: 'A hair oil created to be part of your regular hair and scalp care routine. Apply in sections, then massage gently into the scalp.', retailPrice: 70, wholesalePrice: 60, wholesaleMinQty: 10, bottleSize: '100 mL', productImageUrl: '' };
+  const SETTINGS_DEFAULTS = { productName: 'Hair Confidante Hair Oil', productDescription: 'A unisex hair oil designed for regular hair and scalp care. Apply a small amount along the scalp in sections and massage gently with your fingertips.', retailPrice: 70, wholesalePrice: 60, wholesaleMinQty: 10, bottleSize: '100 mL', productImageUrl: '' };
   let settings = { ...SETTINGS_DEFAULTS };
   let activeReviewRating = 0;
   let trackLastResult = null;
@@ -64,20 +64,18 @@
   }
 
   function headerMarkup() {
-    const brand = IMAGES.logo
-      ? `<img class="header-logo-img" src="${escapeHTML(IMAGES.logo)}" alt="Hair Confidante by MB">`
-      : `<span class="brand-name">HAIR CONFIDANTE</span><span class="brand-by">by MB</span>`;
-    return `<header class="site-header"><div class="header-inner">
+    const homeClass = document.body.dataset.page === 'home' ? ' site-header-home' : '';
+    return `<header class="site-header${homeClass}"><div class="header-inner">
       <div class="header-side"><button class="menu-trigger" type="button" data-open-menu aria-label="Open navigation menu" aria-expanded="false"><span class="menu-bars" aria-hidden="true"><span></span><span></span></span><span class="menu-label">Menu</span></button></div>
-      <a class="brand-lockup" href="index.html" aria-label="Hair Confidante by MB home">${brand}</a>
-      <div class="header-side header-side-right"><button class="track-trigger" type="button" data-open-track><i class="fa-solid fa-box" aria-hidden="true"></i><span>Track order</span></button></div>
+      <a class="brand-lockup header-brand-lockup" href="index.html" aria-label="Hair Confidante by MB home"><span class="header-monogram" aria-hidden="true">HC</span><span class="header-brand-copy"><span class="brand-name">HAIR CONFIDANTE</span><span class="brand-by">by MB</span></span></a>
+      <div class="header-side header-side-right"><button class="track-trigger" type="button" data-open-track aria-label="Track order" title="Track order"><i class="fa-solid fa-box" aria-hidden="true"></i></button></div>
     </div></header>`;
   }
 
   function footerMarkup() {
     return `<footer class="site-footer"><div class="page-shell">
-      <div class="footer-top"><div class="footer-brand"><a class="brand-lockup" href="index.html" aria-label="Hair Confidante by MB home" style="align-items:flex-start;text-align:left"><span class="brand-name">HAIR CONFIDANTE</span><span class="brand-by">by MB</span></a><p>Thoughtful hair and scalp care, made to fit into the way you already care for your hair.</p><div class="footer-socials"><a href="https://www.instagram.com/_michellebediako/" target="_blank" rel="noopener noreferrer" aria-label="Instagram"><i class="fa-brands fa-instagram"></i></a><a href="https://www.tiktok.com/@_michellebediako" target="_blank" rel="noopener noreferrer" aria-label="TikTok"><i class="fa-brands fa-tiktok"></i></a><a href="https://www.snapchat.com/add/i.michyy" target="_blank" rel="noopener noreferrer" aria-label="Snapchat"><i class="fa-brands fa-snapchat"></i></a><a href="https://www.youtube.com/@michellebediakoo" target="_blank" rel="noopener noreferrer" aria-label="YouTube"><i class="fa-brands fa-youtube"></i></a></div></div>
-      <div class="footer-newsletter"><p class="eyebrow">A NOTE NOW AND THEN</p><h3>Stay close.</h3><p>Get product updates and a little more from Hair Confidante.</p><form class="newsletter-form" data-newsletter-form novalidate><input type="email" name="email" placeholder="Your email address" aria-label="Your email address" maxlength="160" required><input class="honeypot" type="text" name="website" tabindex="-1" autocomplete="off" aria-hidden="true"><button type="submit">Sign me up <i class="fa-solid fa-arrow-right"></i></button></form></div></div>
+      <div class="footer-top"><div class="footer-brand"><a class="brand-lockup" href="index.html" aria-label="Hair Confidante by MB home" style="align-items:flex-start;text-align:left"><span class="brand-name">HAIR CONFIDANTE</span><span class="brand-by">by MB</span></a><p>Hair and scalp oil for everyday use, available in retail and wholesale quantities.</p><div class="footer-socials"><a href="https://www.instagram.com/_michellebediako/" target="_blank" rel="noopener noreferrer" aria-label="Instagram"><i class="fa-brands fa-instagram"></i></a><a href="https://www.tiktok.com/@_michellebediako" target="_blank" rel="noopener noreferrer" aria-label="TikTok"><i class="fa-brands fa-tiktok"></i></a><a href="https://www.snapchat.com/add/i.michyy" target="_blank" rel="noopener noreferrer" aria-label="Snapchat"><i class="fa-brands fa-snapchat"></i></a><a href="https://www.youtube.com/@michellebediakoo" target="_blank" rel="noopener noreferrer" aria-label="YouTube"><i class="fa-brands fa-youtube"></i></a></div></div>
+      <div class="footer-newsletter"><p class="eyebrow">NEWS & PRODUCT UPDATES</p><h3>Product updates.</h3><p>Receive product news, availability updates and brand announcements.</p><form class="newsletter-form" data-newsletter-form novalidate><input type="email" name="email" placeholder="Your email address" aria-label="Your email address" maxlength="160" required><input class="honeypot" type="text" name="website" tabindex="-1" autocomplete="off" aria-hidden="true"><button type="submit">Sign me up <i class="fa-solid fa-arrow-right"></i></button></form></div></div>
       <nav class="footer-links" aria-label="Footer navigation"><a href="product.html">Shop Hair Oil</a><a href="wholesale.html">Wholesale</a><a href="index.html#how-to-use">How to use</a><a href="index.html#instagram">Instagram</a><a href="tel:0593231032">059 323 1032</a><button type="button" class="footer-contact-link" data-open-contact>Contact</button></nav>
       <div class="footer-bottom"><span>© <span data-current-year>${new Date().getFullYear()}</span> Hair Confidante by MB. Made with care.</span><span class="footer-credit">Website by <a href="https://www.snapchat.com/add/jvo_james" target="_blank" rel="noopener noreferrer">jvo_james</a></span><span class="footer-socials"><a href="https://www.snapchat.com/add/jvo_james" target="_blank" rel="noopener noreferrer" aria-label="Website creator on Snapchat"><i class="fa-brands fa-snapchat"></i></a></span></div>
     </div></footer>`;
@@ -85,15 +83,37 @@
 
   function overlayMarkup() {
     return `<div class="overlay-backdrop" data-overlay-backdrop></div>
-      <aside class="site-drawer site-drawer-menu" data-menu-drawer aria-label="Site navigation" aria-hidden="true"><div class="drawer-top"><div class="drawer-brand"><strong>HAIR CONFIDANTE</strong><small>by MB</small></div><button type="button" class="icon-button" data-close-overlays aria-label="Close menu"><i class="fa-solid fa-xmark"></i></button></div><p class="drawer-kicker">FIND YOUR WAY</p><nav class="menu-links"><a href="index.html">Home <i class="fa-solid fa-arrow-up-right-from-square"></i></a><a href="product.html">The hair oil <i class="fa-solid fa-arrow-up-right-from-square"></i></a><a href="wholesale.html">Wholesale <span>FOR BUSINESS</span></a><a href="index.html#how-to-use">How to use <i class="fa-solid fa-arrow-up-right-from-square"></i></a><a href="index.html#instagram">Social diary <i class="fa-solid fa-arrow-up-right-from-square"></i></a></nav><div class="drawer-footer">Questions? Call <a href="tel:0593231032">059 323 1032</a></div></aside>
-      <aside class="site-drawer site-drawer-track" data-track-drawer aria-label="Track your order" aria-hidden="true"><div class="drawer-top"><div class="drawer-brand"><strong>ORDER TRACKER</strong><small>Every step, in view.</small></div><button type="button" class="icon-button" data-close-overlays aria-label="Close order tracker"><i class="fa-solid fa-xmark"></i></button></div><div class="track-drawer-heading"><p class="eyebrow">A LITTLE UPDATE</p><h2>Where is your<br><em>order?</em></h2><p>Enter the order number from your email and the email address used at checkout.</p></div><form class="track-form" data-track-form novalidate><label><span>Order number</span><input name="orderNumber" type="text" placeholder="HC-00001" autocapitalize="characters" maxlength="30" required></label><label><span>Email address</span><input name="email" type="email" placeholder="you@example.com" maxlength="160" required></label><button class="button button-dark button-full" type="submit"><span>Find my order</span><i class="fa-solid fa-arrow-right"></i></button><div class="checkout-alert" data-track-error role="status" hidden></div></form><div class="track-results" data-track-results hidden></div></aside>
+      <aside class="site-drawer site-drawer-menu" data-menu-drawer aria-label="Site navigation" aria-hidden="true"><div class="drawer-top"><div class="drawer-brand"><strong>HAIR CONFIDANTE</strong><small>by MB</small></div><button type="button" class="icon-button" data-close-overlays aria-label="Close menu"><i class="fa-solid fa-xmark"></i></button></div><p class="drawer-kicker">FIND YOUR WAY</p><nav class="menu-links"><a href="index.html">Home <i class="fa-solid fa-arrow-up-right-from-square"></i></a><a href="product.html">Hair oil <i class="fa-solid fa-arrow-up-right-from-square"></i></a><a href="wholesale.html">Wholesale <span>FOR BUSINESS</span></a><a href="index.html#how-to-use">How to use <i class="fa-solid fa-arrow-up-right-from-square"></i></a><a href="index.html#instagram">Instagram <i class="fa-solid fa-arrow-up-right-from-square"></i></a></nav><div class="drawer-footer">Questions? Call <a href="tel:0593231032">059 323 1032</a></div></aside>
+      <aside class="site-drawer site-drawer-track" data-track-drawer aria-label="Track your order" aria-hidden="true"><div class="drawer-top"><div class="drawer-brand"><strong>ORDER TRACKER</strong><small>Track your order status.</small></div><button type="button" class="icon-button" data-close-overlays aria-label="Close order tracker"><i class="fa-solid fa-xmark"></i></button></div><div class="track-drawer-heading"><p class="eyebrow">ORDER TRACKING</p><h2>Where is your<br><em>order?</em></h2><p>Enter the order number from your email and the email address used at checkout.</p></div><form class="track-form" data-track-form novalidate><label><span>Order number</span><input name="orderNumber" type="text" placeholder="HC-00001" autocapitalize="characters" maxlength="30" required></label><label><span>Email address</span><input name="email" type="email" placeholder="you@example.com" maxlength="160" required></label><button class="button button-dark button-full" type="submit"><span>Find my order</span><i class="fa-solid fa-arrow-right"></i></button><div class="checkout-alert" data-track-error role="status" hidden></div></form><div class="track-results" data-track-results hidden></div></aside>
       <div class="modal-wrap" data-review-modal aria-hidden="true"><div class="modal-panel" role="dialog" aria-modal="true" aria-labelledby="review-modal-title"><div class="modal-head"><div><p class="eyebrow">A NOTE FROM YOU</p><h2 id="review-modal-title">Leave a review.</h2></div><button type="button" class="icon-button" data-close-review aria-label="Close review form"><i class="fa-solid fa-xmark"></i></button></div><div class="modal-body"><form class="review-form" data-review-form novalidate><div><div class="rating-prompt"><span>Your rating</span><span class="rating-helper" data-rating-helper>Choose a star rating</span></div><div class="rating-stars" role="radiogroup" aria-label="Rate the product" data-rating-stars>${[1,2,3,4,5].map(n=>`<button type="button" role="radio" aria-checked="false" data-rating="${n}" aria-label="${n} star${n===1?'':'s'}">★</button>`).join('')}</div><input type="hidden" name="rating" value=""></div><label><span>Your name</span><input type="text" name="name" autocomplete="name" minlength="2" maxlength="70" placeholder="How should we credit you?" required></label><label><span>Email address</span><input type="email" name="email" autocomplete="email" maxlength="160" placeholder="We will not publish this" required></label><label><span>Your experience</span><textarea name="review" rows="4" minlength="12" maxlength="1200" placeholder="Tell us what you noticed after using the oil..." required></textarea></label><input class="honeypot" type="text" name="website" tabindex="-1" autocomplete="off" aria-hidden="true"><button type="submit" class="button button-dark button-full"><span>Send my review</span><i class="fa-solid fa-arrow-right"></i></button><p style="margin:0;color:var(--ink-faint);font-size:10px">Reviews are checked before they appear. Share your own honest experience.</p></form><div class="review-success" data-review-success hidden><span class="success-icon"><i class="fa-solid fa-check"></i></span><h3>That means a lot.</h3><p style="color:var(--ink-soft);font-size:12px">Your review has been received and is waiting for approval.</p><button type="button" class="button button-dark" data-close-review>Lovely, thanks</button></div></div></div></div>
       <div class="modal-wrap" data-contact-modal aria-hidden="true"><div class="modal-panel" role="dialog" aria-modal="true" aria-labelledby="contact-modal-title"><div class="modal-head"><div><p class="eyebrow">WE ARE LISTENING</p><h2 id="contact-modal-title">Send a note.</h2></div><button type="button" class="icon-button" data-close-contact aria-label="Close contact form"><i class="fa-solid fa-xmark"></i></button></div><div class="modal-body"><form class="review-form" data-contact-form novalidate><label><span>Your name</span><input type="text" name="name" autocomplete="name" minlength="2" maxlength="70" required></label><label><span>Email address</span><input type="email" name="email" autocomplete="email" maxlength="160" required></label><label><span>Phone number <small>Optional</small></span><input type="tel" name="phone" autocomplete="tel" maxlength="25"></label><label><span>Your message</span><textarea name="message" rows="4" minlength="10" maxlength="2000" required></textarea></label><input class="honeypot" type="text" name="company_site" tabindex="-1" autocomplete="off" aria-hidden="true"><div class="checkout-alert" data-contact-error role="status" hidden></div><button type="submit" class="button button-dark button-full"><span>Send message</span><i class="fa-solid fa-arrow-right"></i></button></form></div></div></div>`;
+  }
+
+  function initHeaderScroll(header) {
+    if (!header) return;
+    let lastY = Math.max(0, window.scrollY);
+    let rafPending = false;
+    const update = () => {
+      const y = Math.max(0, window.scrollY);
+      header.classList.toggle('is-scrolled', y > 24);
+      if (y < 10) header.classList.remove('is-hidden');
+      else if (y > lastY + 5 && y > 90) header.classList.add('is-hidden');
+      else if (y < lastY - 3) header.classList.remove('is-hidden');
+      lastY = y;
+      rafPending = false;
+    };
+    window.addEventListener('scroll', () => {
+      if (rafPending) return;
+      rafPending = true;
+      window.requestAnimationFrame(update);
+    }, { passive: true });
+    update();
   }
 
   function initialiseSharedShell() {
     const headerTarget = document.querySelector('[data-site-header]');
     if (headerTarget) headerTarget.innerHTML = headerMarkup();
+    initHeaderScroll(headerTarget?.querySelector('.site-header'));
     const footerTarget = document.querySelector('[data-site-footer]');
     if (footerTarget) footerTarget.innerHTML = footerMarkup();
     if (!document.querySelector('[data-menu-drawer]')) document.body.insertAdjacentHTML('beforeend', overlayMarkup());
@@ -137,7 +157,7 @@
     initContactModal();
     initTrackForm();
     initNewsletter();
-    if (isHome) { initStepsCarousel(); initStorySlider(); initInstagram(); }
+    if (isHome) { initStepsCarousel(); initStorySlider(); initBeforeAfter(); initInstagram(); }
   }
 
   function modalToggle(modal, open) {
@@ -340,28 +360,44 @@
     const dots = [...carousel.querySelectorAll('[data-step-dot]')];
     const progress = carousel.querySelector('[data-steps-progress]');
     const count = carousel.querySelector('[data-steps-count]');
+    let inView = false;
     function goTo(index) {
       activeStep = (index + cards.length) % cards.length;
       cards.forEach((card, i) => card.classList.toggle('is-active', i === activeStep));
       dots.forEach((dot, i) => dot.classList.toggle('is-active', i === activeStep));
-      if (count) count.textContent = `0${activeStep + 1} / 0${cards.length}`;
+      if (count) count.textContent = `${activeStep + 1} / ${cards.length}`;
       if (progress) progress.style.width = `${((activeStep + 1) / cards.length) * 100}%`;
       if (isSmall()) {
-        const gap = parseFloat(getComputedStyle(track).columnGap || getComputedStyle(track).gap) || 12;
         const offset = cards[activeStep].offsetLeft - track.offsetLeft;
         track.style.transform = `translateX(${-offset}px)`;
       } else track.style.transform = '';
     }
-    const restart = () => { clearInterval(stepsTimer); if (isSmall() && !reduceMotion) stepsTimer = setInterval(() => goTo(activeStep + 1), 4800); };
-    dots.forEach(dot => dot.addEventListener('click', () => { goTo(Number(dot.dataset.stepDot)); restart(); }));
-    carousel.querySelector('[data-step-prev]')?.addEventListener('click', () => { goTo(activeStep - 1); restart(); });
-    carousel.querySelector('[data-step-next]')?.addEventListener('click', () => { goTo(activeStep + 1); restart(); });
+    const scheduleAuto = () => {
+      clearInterval(stepsTimer);
+      if (inView && isSmall() && !reduceMotion && !document.hidden) stepsTimer = setInterval(() => goTo(activeStep + 1), 4800);
+    };
+    dots.forEach(dot => dot.addEventListener('click', () => { goTo(Number(dot.dataset.stepDot)); scheduleAuto(); }));
+    carousel.querySelector('[data-step-prev]')?.addEventListener('click', () => { goTo(activeStep - 1); scheduleAuto(); });
+    carousel.querySelector('[data-step-next]')?.addEventListener('click', () => { goTo(activeStep + 1); scheduleAuto(); });
     carousel.addEventListener('touchstart', event => { stepsTouchStart = event.changedTouches[0].clientX; }, { passive: true });
-    carousel.addEventListener('touchend', event => { if (stepsTouchStart == null) return; const delta = event.changedTouches[0].clientX - stepsTouchStart; if (Math.abs(delta) > 45) { goTo(activeStep + (delta < 0 ? 1 : -1)); restart(); } stepsTouchStart = null; }, { passive: true });
+    carousel.addEventListener('touchend', event => {
+      if (stepsTouchStart == null) return;
+      const delta = event.changedTouches[0].clientX - stepsTouchStart;
+      if (Math.abs(delta) > 45) { goTo(activeStep + (delta < 0 ? 1 : -1)); scheduleAuto(); }
+      stepsTouchStart = null;
+    }, { passive: true });
     carousel.addEventListener('mouseenter', () => clearInterval(stepsTimer));
-    carousel.addEventListener('mouseleave', restart);
-    window.addEventListener('resize', () => { goTo(activeStep); restart(); });
-    goTo(0); restart();
+    carousel.addEventListener('mouseleave', scheduleAuto);
+    document.addEventListener('visibilitychange', scheduleAuto);
+    window.addEventListener('resize', () => { goTo(activeStep); scheduleAuto(); });
+    if ('IntersectionObserver' in window) {
+      const observer = new IntersectionObserver(entries => {
+        inView = entries.some(entry => entry.isIntersecting);
+        scheduleAuto();
+      }, { threshold: 0.28 });
+      observer.observe(carousel);
+    } else { inView = true; scheduleAuto(); }
+    goTo(0);
   }
 
   function initStorySlider() {
@@ -388,12 +424,35 @@
     goTo(0); restart();
   }
 
+  function initBeforeAfter() {
+    const section = document.querySelector('[data-before-after]');
+    const input = section?.querySelector('[data-before-after-range]');
+    if (!section || !input) return;
+    const update = () => section.style.setProperty('--compare-position', `${input.value}%`);
+    input.addEventListener('input', update);
+    update();
+  }
+
   async function initInstagram() {
     const grid = document.querySelector('[data-instagram-grid]');
     const note = document.querySelector('[data-instagram-note]');
     if (!grid) return;
     try {
       const result = await api('instagram-feed');
+      if (result.provider === 'elfsight' && /^[a-z0-9-]{16,80}$/i.test(String(result.elfsightWidgetId || ''))) {
+        const widgetId = String(result.elfsightWidgetId);
+        grid.innerHTML = `<div class="instagram-elfsight-wrap"><div class="elfsight-app-${escapeHTML(widgetId)}" data-elfsight-app-lazy></div></div>`;
+        let platform = document.querySelector('script[data-elfsight-platform]');
+        if (!platform) {
+          platform = document.createElement('script');
+          platform.src = 'https://static.elfsight.com/platform/platform.js';
+          platform.async = true;
+          platform.dataset.elfsightPlatform = 'true';
+          document.body.append(platform);
+        }
+        if (note) note.textContent = 'Recent posts from the connected Instagram account.';
+        return;
+      }
       if (result.configured && Array.isArray(result.posts) && result.posts.length) {
         grid.innerHTML = result.posts.map(post => `<a class="instagram-card" href="${escapeHTML(post.permalink)}" target="_blank" rel="noopener noreferrer" aria-label="Open Instagram post"><img src="${escapeHTML(post.mediaUrl)}" alt="Instagram post from Hair Confidante" loading="lazy"><span class="instagram-type"><i class="fa-brands fa-instagram"></i></span><span class="instagram-card-overlay"><i class="fa-solid fa-arrow-up-right-from-square"></i><span class="instagram-caption">${escapeHTML(post.caption || 'A little moment from Instagram.')}</span></span></a>`).join('');
         if (note) note.textContent = 'Fresh posts and reels from Instagram. Select an image to open the original post.';
@@ -401,9 +460,9 @@
       }
     } catch { /* The editorial fallback below keeps the section useful during setup. */ }
     const fallback = (IMAGES.instagramFallback || []).slice(0, 6);
-    const captions = ['A closer look at the details.', 'Beauty, in the everyday.', 'A moment for your hair.', 'Soft light and thoughtful care.', 'Little things that make a routine.', 'More from the beauty moodboard.'];
+    const captions = ['Brand preview image.', 'Beauty editorial image.', 'Hair and scalp care reference.', 'Product-care editorial.', 'Hair Confidante visual preview.', 'Brand imagery preview.'];
     grid.innerHTML = fallback.map((src, index) => `<a class="instagram-card" href="https://www.instagram.com/_michellebediako/" target="_blank" rel="noopener noreferrer" aria-label="Visit Michelle's Instagram"><img src="${escapeHTML(src)}" alt="Editorial beauty photography placeholder" loading="lazy"><span class="instagram-type"><i class="fa-brands fa-instagram"></i></span><span class="instagram-card-overlay"><i class="fa-solid fa-arrow-up-right-from-square"></i><span class="instagram-caption">${captions[index] || 'Beauty, in the everyday.'}</span></span></a>`).join('');
-    if (note) note.textContent = 'Editorial preview photos are shown until the live Instagram connection is configured.';
+    if (note) note.textContent = 'Editorial preview images are shown until the live Instagram connection is configured.';
   }
 
   function initProductPurchase() {
@@ -475,6 +534,31 @@
     window.HC_CHECKOUT_MODE = mode;
     window.HC_CHECKOUT_QUANTITY = quantity;
     const hidden = document.createElement('input'); hidden.type = 'hidden'; hidden.name = 'mode'; hidden.value = mode; form.append(hidden);
+    const countrySelect = form.querySelector('[name="countryCode"]');
+    const ghanaGroup = form.querySelector('[data-ghana-region-group]');
+    const internationalGroup = form.querySelector('[data-international-region-group]');
+    const ghanaRegion = form.querySelector('[name="ghanaRegion"]');
+    const internationalRegion = form.querySelector('[name="internationalRegion"]');
+    const postalCode = form.querySelector('[name="postalCode"]');
+    const postalHelp = form.querySelector('[data-postal-help]');
+    const countryNameInput = form.querySelector('[name="country"]');
+    function syncDeliveryFields() {
+      const selected = countrySelect?.selectedOptions?.[0];
+      const isGhana = (countrySelect?.value || 'GH').toUpperCase() === 'GH';
+      if (countryNameInput) countryNameInput.value = selected?.dataset.countryName || selected?.textContent || 'Ghana';
+      if (ghanaGroup) ghanaGroup.hidden = !isGhana;
+      if (internationalGroup) internationalGroup.hidden = isGhana;
+      if (ghanaRegion) ghanaRegion.required = isGhana;
+      if (internationalRegion) internationalRegion.required = !isGhana;
+      if (postalCode) postalCode.required = !isGhana;
+      if (postalHelp) postalHelp.textContent = isGhana ? 'Optional in Ghana' : 'Required for international delivery';
+      if (isGhana && internationalRegion) internationalRegion.value = '';
+      if (!isGhana && ghanaRegion) ghanaRegion.value = '';
+    }
+    countrySelect?.addEventListener('change', syncDeliveryFields);
+    syncDeliveryFields();
+    const scheduleEl = document.querySelector('[data-delivery-schedule]');
+    if (scheduleEl) scheduleEl.textContent = 'Delivery timing and fee will be confirmed by the team after checkout.';
     updateCheckoutSummary();
     form.addEventListener('submit', async event => {
       event.preventDefault();
@@ -482,6 +566,8 @@
       if (!form.reportValidity()) return;
       const values = Object.fromEntries(new FormData(form).entries());
       values.mode = mode; values.quantity = quantity;
+      values.region = values.countryCode === 'GH' ? values.ghanaRegion : values.internationalRegion;
+      delete values.ghanaRegion; delete values.internationalRegion;
       const button = form.querySelector('button[type="submit"]');
       try {
         const result = await withButtonLoading(button, () => api('create-checkout', { method: 'POST', body: values }), 'Connecting to Paystack');
@@ -512,7 +598,9 @@
     totalEl.textContent = money(total);
     const back = document.querySelector('[data-back-to-product]');
     if (back) back.href = mode === 'wholesale' ? 'wholesale.html' : 'product.html';
-    document.querySelector('.checkout-heading h1')?.replaceChildren(...(mode === 'wholesale' ? [document.createTextNode('Bulk order '), Object.assign(document.createElement('em'), { textContent: 'checkout.' })] : [document.createTextNode('Let’s make it '), Object.assign(document.createElement('em'), { textContent: 'official.' })]));
+    document.querySelector('.checkout-heading h1')?.replaceChildren(...(mode === 'wholesale' ? [document.createTextNode('Wholesale '), Object.assign(document.createElement('em'), { textContent: 'checkout.' })] : [document.createTextNode('Delivery & '), Object.assign(document.createElement('em'), { textContent: 'payment.' })]));
+    const scheduleEl = document.querySelector('[data-delivery-schedule]');
+    if (scheduleEl) { const names = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday']; const days = Array.isArray(settings.dispatchDays) ? settings.dispatchDays.map(Number).filter(n => n >= 0 && n <= 6).sort((a,b) => a-b) : [1,2,3,4,5,6]; const dayCopy = days.map(n => names[n]).join(', '); scheduleEl.textContent = `Typical delivery window: ${Number(settings.estimatedDeliveryDays || 3)} days. Regular delivery days: ${dayCopy || 'to be confirmed'}. The final delivery date and fee will be confirmed after checkout.`; }
   }
 
   function initConfirmation() {
@@ -537,7 +625,50 @@
           spinnerWrap.hidden = true;
           message.textContent = 'Your payment is confirmed. We have received your order and will email you as it moves along.';
           details.hidden = false;
-          details.innerHTML = `<div class="confirmation-order-no"><span>YOUR ORDER NUMBER</span><strong>${escapeHTML(data.orderNumber)}</strong></div><div class="confirmation-detail-row"><span>Current status</span><strong>${escapeHTML(data.status || 'preparing')}</strong></div><div class="confirmation-detail-row"><span>What happens next</span><strong>We start preparing it</strong></div>`;
+          const order = data.order || { orderNumber: data.orderNumber, status: data.status };
+          const moneyText = value => `GH₵${Number(value || 0).toLocaleString('en-GH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+          const dateText = value => value ? new Date(value).toLocaleString('en-GH', { dateStyle: 'medium', timeStyle: 'short' }) : new Date().toLocaleString('en-GH', { dateStyle: 'medium', timeStyle: 'short' });
+          const deliveryAddress = [order.address, order.city, order.region, order.postalCode, order.country].filter(Boolean).map(escapeHTML).join(', ');
+          details.innerHTML = `
+            <div class="confirmation-order-no"><span>ORDER NUMBER</span><strong>${escapeHTML(order.orderNumber || data.orderNumber)}</strong></div>
+            <div class="confirmation-detail-row"><span>Payment status</span><strong>Paid · ${escapeHTML(order.status || data.status || 'preparing')}</strong></div>
+            <section class="receipt-document" data-receipt-document aria-label="Payment receipt">
+              <div class="receipt-brandline"><span class="receipt-monogram">HC</span><div><strong>HAIR CONFIDANTE</strong><small>by MB · PAYMENT RECEIPT</small></div><span class="receipt-paid">PAID</span></div>
+              <div class="receipt-heading"><h2>Payment receipt</h2><p>Reference ${escapeHTML(order.paymentReference || reference)}</p></div>
+              <div class="receipt-meta"><div><small>ORDER NUMBER</small><strong>${escapeHTML(order.orderNumber || data.orderNumber)}</strong></div><div><small>DATE PAID</small><strong>${escapeHTML(dateText(order.paidAt || order.createdAt))}</strong></div></div>
+              <div class="receipt-customer"><div><small>BILLED TO</small><strong>${escapeHTML(order.name || '')}</strong><span>${escapeHTML(order.email || '')}</span><span>${escapeHTML(order.phone || '')}</span></div><div><small>DELIVERY ADDRESS</small><span>${deliveryAddress || 'Provided at checkout'}</span></div></div>
+              <div class="receipt-line receipt-items"><span><strong>${escapeHTML(order.productName || 'Hair Confidante Hair Oil')}</strong><small>${escapeHTML(order.mode || 'retail')} · ${Number(order.quantity || 1)} bottle${Number(order.quantity) === 1 ? '' : 's'} × ${moneyText(order.unitPrice)}</small></span><strong>${moneyText(Number(order.quantity || 1) * Number(order.unitPrice || 0))}</strong></div>
+              <div class="receipt-line"><span>Product subtotal paid</span><strong>${moneyText(order.total)}</strong></div>
+              <div class="receipt-line"><span>Delivery fee</span><strong>Not included</strong></div>
+              <div class="receipt-total"><span>TOTAL PAID</span><strong>${moneyText(order.total)}</strong></div>
+              <p class="receipt-delivery-note">Delivery is arranged separately. We will contact you with the estimated delivery fee and delivery details.</p>
+              <div class="receipt-footerline"><span>Payment method: ${escapeHTML(order.paymentChannel || 'Paystack')}</span><span>Currency: GHS</span></div>
+            </section>
+            <div class="receipt-actions"><button type="button" class="button button-dark receipt-print-button" data-print-receipt><i class="fa-solid fa-print"></i> Print receipt</button><button type="button" class="button button-outline receipt-download-button" data-download-receipt><i class="fa-solid fa-download"></i> Download receipt</button></div>`;
+          const downloadReceipt = () => {
+            const receipt = details.querySelector('[data-receipt-document]');
+            if (!receipt) return;
+            const standalone = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Hair Confidante payment receipt</title><style>
+              *{box-sizing:border-box}body{margin:0;padding:28px;background:#f2ede5;color:#33212a;font:14px/1.5 Arial,sans-serif}.receipt-document{max-width:760px;margin:0 auto;padding:32px;background:#fffdf8;border:1px solid #ddd4c9}.receipt-brandline{display:flex;align-items:center;gap:11px;padding-bottom:16px;border-bottom:1px solid #e7dfd5}.receipt-monogram{display:grid;place-items:center;flex:0 0 34px;width:34px;height:34px;border:1px solid #b98167;border-radius:50%;font-family:Georgia,serif}.receipt-brandline>div{display:grid;gap:3px}.receipt-brandline>div strong{font-size:10px;letter-spacing:.13em}.receipt-brandline small,.receipt-meta small,.receipt-customer small{color:#857a7d;font-size:8px;font-weight:700;letter-spacing:.1em}.receipt-paid{margin-left:auto;padding:6px 9px;border:1px solid #718366;color:#536b46;font-size:8px;font-weight:800;letter-spacing:.12em}.receipt-heading{padding:19px 0 14px}.receipt-heading h2{margin:0 0 4px;font-size:28px}.receipt-heading p{margin:0;color:#857a7d;font-size:10px;overflow-wrap:anywhere}.receipt-meta,.receipt-customer{display:grid;grid-template-columns:1fr 1fr;gap:18px;padding:13px 0;border-bottom:1px solid #e7dfd5}.receipt-meta>div,.receipt-customer>div{display:grid;align-content:start;gap:5px;min-width:0}.receipt-meta strong,.receipt-customer strong,.receipt-customer span{font-size:10px;line-height:1.6;overflow-wrap:anywhere}.receipt-customer span{color:#62565d}.receipt-line{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;padding:12px 0;border-bottom:1px solid #e7dfd5;font-size:11px}.receipt-line>span{display:grid;gap:4px}.receipt-line small{color:#857a7d;font-size:9px}.receipt-line>strong{flex-shrink:0}.receipt-total{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:16px 0;border-bottom:1px solid #e7dfd5;font-size:10px;font-weight:800;letter-spacing:.1em}.receipt-total strong{font-size:20px;letter-spacing:0}.receipt-delivery-note{margin:13px 0 0;color:#62565d;font-size:10px;line-height:1.65}.receipt-footerline{display:flex;flex-wrap:wrap;justify-content:space-between;gap:8px;margin-top:17px;padding-top:12px;border-top:1px solid #e7dfd5;color:#857a7d;font-size:8px}@media(max-width:560px){body{padding:10px}.receipt-document{padding:18px}.receipt-meta,.receipt-customer{grid-template-columns:1fr}}
+              </style></head><body>${receipt.outerHTML}</body></html>`;
+            const url = URL.createObjectURL(new Blob([standalone], { type: 'text/html;charset=utf-8' }));
+            const link = document.createElement('a');
+            const safeOrder = String(order.orderNumber || data.orderNumber || 'receipt').replace(/[^a-z0-9-]/gi, '-');
+            link.href = url; link.download = `Hair-Confidante-Receipt-${safeOrder}.html`;
+            document.body.append(link); link.click(); link.remove();
+            setTimeout(() => URL.revokeObjectURL(url), 5000);
+          };
+          details.querySelector('[data-print-receipt]')?.addEventListener('click', () => window.print());
+          details.querySelector('[data-download-receipt]')?.addEventListener('click', downloadReceipt);
+          // Attempt a one-time automatic receipt download. The visible download button remains
+          // available if the browser blocks downloads that begin after asynchronous verification.
+          try {
+            const receiptKey = `hc-receipt-${order.paymentReference || reference}`;
+            if (!sessionStorage.getItem(receiptKey)) {
+              sessionStorage.setItem(receiptKey, 'download-attempted');
+              setTimeout(downloadReceipt, 700);
+            }
+          } catch (_) { /* Private browsing can disable session storage. */ }
           return;
         }
         spinnerText.textContent = 'Payment is still processing';
@@ -558,12 +689,8 @@
   }
 
   function initReveal() {
-    const items = document.querySelectorAll('.reveal');
-    if (!('IntersectionObserver' in window) || reduceMotion) { items.forEach(item => item.classList.add('is-visible')); return; }
-    const observer = new IntersectionObserver(entries => entries.forEach(entry => {
-      if (entry.isIntersecting) { entry.target.classList.add('is-visible'); observer.unobserve(entry.target); }
-    }), { threshold: .12, rootMargin: '0px 0px -28px 0px' });
-    items.forEach(item => observer.observe(item));
+    // Keep content immediately visible; no staggered or scroll-triggered reveal effects.
+    document.querySelectorAll('.reveal').forEach(item => item.classList.add('is-visible'));
   }
 
   function init() {

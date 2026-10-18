@@ -2,7 +2,7 @@ import { response } from './_shared/http.js';
 
 export const handler = async event => {
   if (event.httpMethod !== 'GET') return response(405, { error: 'Method not allowed.' });
-  const elfsightWidgetId = String(process.env.ELFSIGHT_WIDGET_ID || '').trim();
+  const elfsightWidgetId = String(process.env.ELFSIGHT_WIDGET_ID || 'dbac3e54-59a3-4fac-887f-af838eb68133').trim();
   if (elfsightWidgetId && /^[a-z0-9-]{16,80}$/i.test(elfsightWidgetId)) return response(200, { configured: true, provider: 'elfsight', elfsightWidgetId, posts: [] });
   const userId = process.env.INSTAGRAM_USER_ID;
   const token = process.env.INSTAGRAM_ACCESS_TOKEN;

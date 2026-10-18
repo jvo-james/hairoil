@@ -12,9 +12,9 @@ window.HC_IMAGES = {
   stepPart: "images/make.jpg",
   stepApply: "https://images.squarespace-cdn.com/content/v1/5db99f69b9e8d151704d0405/d8d26204-c10d-45b7-a940-90ca6fe88ebc/woman-applying-scalp-treatment-oil-for-healthy-scalp-and-hair-growth.jpeg",
   stepMassage: "images/massage.webp",
-  storyOne: "https://images.unsplash.com/photo-1531123897727-8f129e1688ce?auto=format&fit=crop&w=1400&q=88",
-  storyTwo: "https://images.unsplash.com/photo-1508214751196-bcfd4ca60f91?auto=format&fit=crop&w=1400&q=88",
-  storyThree: "https://images.unsplash.com/photo-1524250502761-1ac6f2e30d43?auto=format&fit=crop&w=1400&q=88",
+  storyOne: "images/3.jpg",
+  storyTwo: "images/7.jpg",
+  storyThree: "images/4.jpg",
   founder: "images/michelle.jpg",
   instagramFallback: [
     "https://images.unsplash.com/photo-1608248543803-ba4f8c70ae0b?auto=format&fit=crop&w=800&q=82",

@@ -546,6 +546,14 @@
   function initCheckout() {
     const form = document.querySelector('[data-checkout-form]');
     if (!form) return;
+    const mobileOrderToggle = document.querySelector('[data-mobile-order-toggle]');
+    const orderSummaryPanel = document.querySelector('.order-summary-panel');
+    mobileOrderToggle?.addEventListener('click', () => {
+      const expanded = orderSummaryPanel?.classList.toggle('is-expanded') || false;
+      mobileOrderToggle.setAttribute('aria-expanded', String(expanded));
+      const label = mobileOrderToggle.querySelector('[data-mobile-order-toggle-label]');
+      if (label) label.textContent = expanded ? 'Hide order details' : 'Review order';
+    });
     const params = new URLSearchParams(window.location.search);
     const mode = params.get('mode') === 'wholesale' ? 'wholesale' : 'retail';
     let quantity = Number(params.get('quantity') || 1);
@@ -813,6 +821,12 @@
     document.querySelector('[data-checkout-subtotal]')?.replaceChildren(document.createTextNode(money(total)));
     document.querySelector('[data-checkout-fee]')?.replaceChildren(document.createTextNode(money(processingFee)));
     totalEl.textContent = money(amountDue);
+    const mobileTotal = document.querySelector('[data-mobile-order-total]');
+    const mobileQuantity = document.querySelector('[data-mobile-order-quantity]');
+    const mobileMode = document.querySelector('[data-mobile-order-mode]');
+    if (mobileTotal) mobileTotal.textContent = money(amountDue);
+    if (mobileQuantity) mobileQuantity.textContent = `${quantity} item${quantity === 1 ? '' : 's'}`;
+    if (mobileMode) mobileMode.textContent = mode === 'wholesale' ? 'WHOLESALE' : 'RETAIL';
     const back = document.querySelector('[data-back-to-product]');
     if (back) back.href = mode === 'wholesale' ? 'wholesale.html' : 'product.html';
     document.querySelector('.checkout-heading h1')?.replaceChildren(...(mode === 'wholesale' ? [document.createTextNode('Wholesale '), Object.assign(document.createElement('em'), { textContent: 'checkout.' })] : [document.createTextNode('Delivery & '), Object.assign(document.createElement('em'), { textContent: 'payment.' })]));

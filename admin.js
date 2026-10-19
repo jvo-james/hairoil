@@ -111,21 +111,9 @@ function renderOrders() {
     return (!search || text.includes(search)) && (filter === 'all' || order.status === filter);
   });
   if (!orders.length) { target.innerHTML = emptyTable('No orders match this view.'); return; }
-  const rows = orders.map(order => {
-    const paid = order.paymentStatus === 'success';
-    const statusOptions = ['preparing','ready','dispatched','delivered','cancelled'].map(status => `<option value="${status}" ${order.status === status ? 'selected' : ''}>${status[0].toUpperCase() + status.slice(1)}</option>`).join('');
-    return `<tr data-open-order="${esc(order.orderNumber)}" tabindex="0" role="button"><td><strong>${esc(order.orderNumber)}</strong><small>${esc(order.mode || 'retail')} · ${esc(shortDate(order.createdAt))}</small><small class="admin-row-hint">View order details <i class="fa-solid fa-arrow-up-right-from-square"></i></small></td><td><strong>${esc(order.name)}</strong><small>${esc(order.email)}<br>${esc(order.phone || '')}</small><small>${esc(order.address || '')}</small><small>${esc([order.city, order.region, order.postalCode, order.country].filter(Boolean).join(', '))}</small></td><td><strong>${gh(order.total)}</strong><small>${Number(order.quantity || 1)} bottle${Number(order.quantity) === 1 ? '' : 's'}</small>${Number(order.processingFee || 0) > 0 ? `<small>Processing fee ${gh(order.processingFee)}</small>` : ''}</td><td>${statusPill(order.status)}<small>${paid ? 'Paystack verified' : esc(order.paymentStatus || 'Unpaid')}</small></td><td>${paid ? `<div class="table-actions"><select aria-label="New status for ${esc(order.orderNumber)}" data-status-select="${esc(order.orderNumber)}" style="max-width:125px;padding:7px;border:1px solid var(--line);background:#fff;font-size:10px">${statusOptions}</select><button type="button" class="table-action" data-save-status="${esc(order.orderNumber)}">Save</button></div>` : '<small>Payment not confirmed</small>'}</td></tr>`;
-  });
-  target.innerHTML = table(['Order', 'Customer & delivery', 'Product subtotal', 'Current status', 'Update status'], rows, 1000);
+  const rows = orders.map(order => `<tr data-open-order="${esc(order.orderNumber)}" tabindex="0" role="button" aria-label="View order ${esc(order.orderNumber)} details"><td><strong>${esc(order.orderNumber)}</strong><small>${esc(order.mode || 'retail')} · ${esc(shortDate(order.createdAt))}</small><small class="admin-row-hint">View details <i class="fa-solid fa-arrow-up-right-from-square"></i></small></td><td><strong>${esc(order.name || 'Customer')}</strong><small>${esc(order.email || '')}</small></td><td><strong>${gh(order.total)}</strong><small>${Number(order.quantity || 1)} bottle${Number(order.quantity) === 1 ? '' : 's'}</small></td><td>${statusPill(order.status)}${order.paymentStatus !== 'success' ? `<small>${esc(order.paymentStatus || 'Payment not confirmed')}</small>` : ''}</td><td>${esc(shortDate(order.createdAt))}</td></tr>`);
+  target.innerHTML = table(['Order', 'Customer', 'Product subtotal', 'Status', 'Placed'], rows, 760);
   bindOrderRowClicks(target);
-  target.querySelectorAll('[data-save-status]').forEach(button => button.addEventListener('click', async () => {
-    const orderNumber = button.dataset.saveStatus;
-    const status = target.querySelector(`[data-status-select="${CSS.escape(orderNumber)}"]`)?.value;
-    try {
-      const result = await loadingButton(button, () => api({ action: 'update-order-status', orderNumber, status }), 'Updating');
-      bannerMessage(result.message); await loadDashboard(false);
-    } catch (error) { bannerMessage(error.message, 'error'); }
-  }));
 }
 
 function dateInputValue(value) {
@@ -182,24 +170,28 @@ function openOrderDrawer(orderNumber) {
   const statusOptions = ['preparing','ready','dispatched','delivered','cancelled'].map(status => `<option value="${status}" ${order.status === status ? 'selected' : ''}>${status[0].toUpperCase() + status.slice(1)}</option>`).join('');
   const address = [order.address, order.city, order.region, order.postalCode, order.country].filter(Boolean).join(', ');
   const deliveredDate = order.deliveredAt || (order.history || []).find(item => item.status === 'delivered')?.at;
+  const mobileDrawer = window.matchMedia('(max-width: 760px)').matches;
+  const detailsReadOnly = mobileDrawer ? 'readonly aria-readonly="true"' : '';
+  const detailsSelectDisabled = mobileDrawer ? 'disabled aria-disabled="true"' : '';
   drawer.innerHTML = `
     <header class="admin-order-drawer-head"><div><span class="admin-drawer-eyebrow">ORDER FILE · ${esc(shortDate(order.createdAt))}</span><h2>${esc(order.orderNumber)}</h2><p>${esc(order.name || 'Customer')} <span>·</span> ${esc(order.mode || 'retail')} order</p></div><button type="button" data-close-order-drawer aria-label="Close order details"><i class="fa-solid fa-xmark"></i></button></header>
     <div class="admin-order-drawer-body">
       <div class="admin-order-status-card"><div><span>Current status</span><strong>${statusPill(order.status)}</strong></div><div><span>Payment</span><strong class="admin-payment-state ${paid ? 'is-paid' : ''}"><i class="fa-solid ${paid ? 'fa-circle-check' : 'fa-clock'}"></i> ${esc(paid ? 'Verified' : order.paymentStatus || 'Pending')}</strong></div></div>
+      ${mobileDrawer ? '<p class="admin-mobile-order-note"><i class="fa-solid fa-mobile-screen-button"></i> Order details are view-only on mobile. You can update the order status below.</p>' : ''}
       <form data-order-edit-form><input type="hidden" name="orderNumber" value="${esc(order.orderNumber)}">
       <section class="admin-drawer-section"><div class="admin-drawer-section-heading"><span class="admin-drawer-section-icon"><i class="fa-solid fa-user"></i></span><div><h3>Customer details</h3><p>Contact information provided at checkout</p></div></div>
-        <div class="admin-drawer-fields"><label class="field"><span>Full name</span><input name="name" value="${esc(order.name || '')}" required minlength="2" maxlength="90"></label><label class="field"><span>Email address</span><input name="email" type="email" value="${esc(order.email || '')}" required maxlength="160"></label><label class="field"><span>Phone number</span><input name="phone" type="tel" value="${esc(order.phone || '')}" required minlength="7" maxlength="25"></label><label class="field"><span>Country</span><input name="country" value="${esc(order.country || 'Ghana')}" required maxlength="100"></label></div>
+        <div class="admin-drawer-fields"><label class="field"><span>Full name</span><input name="name" value="${esc(order.name || '')}" required minlength="2" maxlength="90" ${detailsReadOnly}></label><label class="field"><span>Email address</span><input name="email" type="email" value="${esc(order.email || '')}" required maxlength="160" ${detailsReadOnly}></label><label class="field"><span>Phone number</span><input name="phone" type="tel" value="${esc(order.phone || '')}" required minlength="7" maxlength="25" ${detailsReadOnly}></label><label class="field"><span>Country</span><input name="country" value="${esc(order.country || 'Ghana')}" required maxlength="100" ${detailsReadOnly}></label></div>
       </section>
-      <section class="admin-drawer-section"><div class="admin-drawer-section-heading"><span class="admin-drawer-section-icon"><i class="fa-solid fa-location-dot"></i></span><div><h3>Delivery address</h3><p>Editable shipping details</p></div></div>
-        <div class="admin-drawer-fields"><label class="field field-full"><span>Street address</span><textarea name="address" rows="2" required minlength="5" maxlength="500">${esc(order.address || '')}</textarea></label><label class="field"><span>City / town</span><input name="city" value="${esc(order.city || '')}" required maxlength="100"></label><label class="field"><span>Region / state</span><input name="region" value="${esc(order.region || '')}" required maxlength="100"></label><label class="field"><span>Country code</span><input name="countryCode" value="${esc(order.countryCode || 'GH')}" required maxlength="2" minlength="2" pattern="[A-Za-z]{2}"></label><label class="field"><span>Postal code</span><input name="postalCode" value="${esc(order.postalCode || '')}" maxlength="30" ${String(order.countryCode || 'GH').toUpperCase() === 'GH' ? '' : 'required'}></label></div>
+      <section class="admin-drawer-section"><div class="admin-drawer-section-heading"><span class="admin-drawer-section-icon"><i class="fa-solid fa-location-dot"></i></span><div><h3>Delivery address</h3><p>${mobileDrawer ? 'Shipping details are view-only on mobile' : 'Editable shipping details'}</p></div></div>
+        <div class="admin-drawer-fields"><label class="field field-full"><span>Street address</span><textarea name="address" rows="2" required minlength="5" maxlength="500" ${detailsReadOnly}>${esc(order.address || '')}</textarea></label><label class="field"><span>City / town</span><input name="city" value="${esc(order.city || '')}" required maxlength="100" ${detailsReadOnly}></label><label class="field"><span>Region / state</span><input name="region" value="${esc(order.region || '')}" required maxlength="100" ${detailsReadOnly}></label><label class="field"><span>Country code</span><input name="countryCode" value="${esc(order.countryCode || 'GH')}" required maxlength="2" minlength="2" pattern="[A-Za-z]{2}" ${detailsReadOnly}></label><label class="field"><span>Postal code</span><input name="postalCode" value="${esc(order.postalCode || '')}" maxlength="30" ${String(order.countryCode || 'GH').toUpperCase() === 'GH' ? '' : 'required'} ${detailsReadOnly}></label></div>
       </section>
       <section class="admin-drawer-section"><div class="admin-drawer-section-heading"><span class="admin-drawer-section-icon"><i class="fa-solid fa-box-open"></i></span><div><h3>Purchased item</h3><p>Product details and the product subtotal</p></div></div>
-        <div class="admin-drawer-fields"><label class="field field-full"><span>Product name</span><input name="productName" value="${esc(order.productName || 'Hair Confidante Hair Oil')}" required maxlength="100"></label><label class="field"><span>Order type</span><select name="mode"><option value="retail" ${order.mode === 'retail' ? 'selected' : ''}>Retail</option><option value="wholesale" ${order.mode === 'wholesale' ? 'selected' : ''}>Wholesale</option></select></label><label class="field"><span>Quantity (bottles)</span><input name="quantity" type="number" min="1" max="1000" step="1" value="${quantity}" required></label><label class="field"><span>Unit price (GH₵)</span><input name="unitPrice" type="number" min="0.01" max="100000" step="0.01" value="${unitPrice.toFixed(2)}" required></label><label class="field"><span>Expected delivery date</span><input name="expectedDeliveryDate" type="date" value="${dateInputValue(expectedDateFallback(order))}"></label></div>
+        <div class="admin-drawer-fields"><label class="field field-full"><span>Product name</span><input name="productName" value="${esc(order.productName || 'Hair Confidante Hair Oil')}" required maxlength="100" ${detailsReadOnly}></label><label class="field"><span>Order type</span><select name="mode" ${detailsSelectDisabled}><option value="retail" ${order.mode === 'retail' ? 'selected' : ''}>Retail</option><option value="wholesale" ${order.mode === 'wholesale' ? 'selected' : ''}>Wholesale</option></select></label><label class="field"><span>Quantity (bottles)</span><input name="quantity" type="number" min="1" max="1000" step="1" value="${quantity}" required ${detailsReadOnly}></label><label class="field"><span>Unit price (GH₵)</span><input name="unitPrice" type="number" min="0.01" max="100000" step="0.01" value="${unitPrice.toFixed(2)}" required ${detailsReadOnly}></label><label class="field"><span>Expected delivery date</span><input name="expectedDeliveryDate" type="date" value="${dateInputValue(expectedDateFallback(order))}" ${detailsReadOnly}></label></div>
         <div class="admin-drawer-totals"><div><span>Product subtotal</span><strong data-order-edit-subtotal>${gh(order.total)}</strong></div><div><span>Processing fee <small>Listed separately</small></span><strong data-order-edit-fee>${gh(processingFee)}</strong></div><div class="admin-drawer-total"><span>Customer charge record</span><strong data-order-edit-charged>${gh(order.chargeTotal ?? (Number(order.total || 0) + processingFee))}</strong></div></div>
       </section>
-      <section class="admin-drawer-section"><div class="admin-drawer-section-heading"><span class="admin-drawer-section-icon"><i class="fa-solid fa-message"></i></span><div><h3>Customer note</h3><p>Message the customer entered during checkout</p></div></div><label class="field"><span>Note / special instructions</span><textarea name="note" rows="3" maxlength="500" placeholder="No note provided">${esc(order.note || '')}</textarea></label></section>
+      <section class="admin-drawer-section"><div class="admin-drawer-section-heading"><span class="admin-drawer-section-icon"><i class="fa-solid fa-message"></i></span><div><h3>Customer note</h3><p>Message the customer entered during checkout</p></div></div><label class="field"><span>Note / special instructions</span><textarea name="note" rows="3" maxlength="500" placeholder="No note provided" ${detailsReadOnly}>${esc(order.note || '')}</textarea></label></section>
       ${paid ? `<section class="admin-drawer-section admin-status-edit"><div class="admin-drawer-section-heading"><span class="admin-drawer-section-icon"><i class="fa-solid fa-truck-fast"></i></span><div><h3>Fulfilment</h3><p>Changing status sends the appropriate customer email</p></div></div><label class="field"><span>Order status</span><select name="status">${statusOptions}</select></label>${order.status === 'delivered' && deliveredDate ? `<p class="admin-delivered-date"><i class="fa-solid fa-circle-check"></i> Delivered on ${esc(dateText(deliveredDate))}</p>` : ''}</section>` : `<div class="admin-drawer-payment-note"><i class="fa-solid fa-lock"></i> Order fulfilment becomes available once payment is verified.</div>`}
-      <div class="admin-drawer-footer"><button type="button" class="button button-outline" data-close-order-drawer>Close</button><button type="submit" class="button button-dark"><span>Save order changes</span><i class="fa-solid fa-floppy-disk"></i></button></div>
+      <div class="admin-drawer-footer"><button type="button" class="button button-outline" data-close-order-drawer>Close</button>${mobileDrawer ? (paid ? '<button type="submit" class="button button-dark"><span>Save status</span><i class="fa-solid fa-check"></i></button>' : '') : '<button type="submit" class="button button-dark"><span>Save order changes</span><i class="fa-solid fa-floppy-disk"></i></button>'}</div>
       </form>
     </div>`;
   drawer.hidden = false;
@@ -207,12 +199,26 @@ function openOrderDrawer(orderNumber) {
   backdrop.hidden = false;
   document.body.classList.add('has-admin-order-drawer');
   drawer.querySelectorAll('[data-close-order-drawer]').forEach(button => button.addEventListener('click', closeOrderDrawer));
-  drawer.querySelector('[data-order-edit-form]')?.addEventListener('input', () => updateDrawerMoney(drawer));
+  if (!mobileDrawer) drawer.querySelector('[data-order-edit-form]')?.addEventListener('input', () => updateDrawerMoney(drawer));
   drawer.querySelector('[data-order-edit-form]')?.addEventListener('submit', async event => {
     event.preventDefault();
     const form = event.currentTarget;
     if (!form.reportValidity()) return;
     const button = form.querySelector('button[type="submit"]');
+    if (mobileDrawer) {
+      if (!paid || !form.elements.status) { bannerMessage('This order is not ready for a status update.', 'error'); return; }
+      const nextStatus = form.elements.status.value;
+      if (nextStatus === order.status) { bannerMessage('No status change to save.'); closeOrderDrawer(); return; }
+      try {
+        await loadingButton(button, async () => {
+          const result = await api({ action: 'update-order-status', orderNumber: order.orderNumber, status: nextStatus });
+          bannerMessage(result.message);
+          closeOrderDrawer();
+          await loadDashboard(false);
+        }, 'Saving status');
+      } catch (error) { bannerMessage(error.message, 'error'); }
+      return;
+    }
     const values = Object.fromEntries(new FormData(form).entries());
     const nextStatus = paid ? values.status : order.status;
     delete values.status;
@@ -228,7 +234,8 @@ function openOrderDrawer(orderNumber) {
       }, 'Saving changes');
     } catch (error) { bannerMessage(error.message, 'error'); }
   });
-  drawer.querySelector('input[name="name"]')?.focus({ preventScroll: true });
+  if (mobileDrawer) drawer.querySelector('[data-close-order-drawer]')?.focus({ preventScroll: true });
+  else drawer.querySelector('input[name="name"]')?.focus({ preventScroll: true });
 }
 
 function updateDrawerMoney(drawer) {

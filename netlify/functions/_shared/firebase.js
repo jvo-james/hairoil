@@ -25,8 +25,17 @@ export async function requireAdmin(event) {
   try { decoded = await auth.verifyIdToken(match[1], true); }
   catch { throw Object.assign(new Error('Your sign-in has expired. Please sign in again.'), { statusCode: 401 }); }
   const allowlist = (process.env.ADMIN_EMAILS || '').split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
-  if (!decoded.email || !allowlist.includes(decoded.email.toLowerCase())) {
+  const isAllowlisted = Boolean(decoded.email && allowlist.includes(decoded.email.toLowerCase()));
+  const { db, FieldValue } = getFirebase();
+  const settingsRef = db.collection('settings').doc('store');
+  const settingsSnap = await settingsRef.get();
+  const registeredUid = settingsSnap.exists ? settingsSnap.data().adminUid : null;
+  const isRegisteredOwner = Boolean(registeredUid && registeredUid === decoded.uid);
+  if (!decoded.email || (!isAllowlisted && !isRegisteredOwner)) {
     throw Object.assign(new Error('This account does not have admin access.'), { statusCode: 403 });
+  }
+  if (isAllowlisted && !registeredUid && decoded.uid) {
+    await settingsRef.set({ adminUid: decoded.uid, adminUidLinkedAt: FieldValue.serverTimestamp() }, { merge: true });
   }
   return decoded;
 }

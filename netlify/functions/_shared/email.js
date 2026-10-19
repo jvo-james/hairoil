@@ -17,9 +17,24 @@ function shell({ eyebrow = 'A NOTE FROM HAIR CONFIDANTE', title, intro, content,
 }
 
 const orderUrl = () => `${siteUrl()}/`;
-const money = value => `GH₵${Number(value || 0).toFixed(2)}`;
+const money = value => `GH₵${Number(value || 0).toLocaleString('en-GH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+const formatDate = value => {
+  if (!value) return 'To be confirmed';
+  const date = typeof value.toDate === 'function' ? value.toDate() : new Date(value);
+  return Number.isNaN(date.getTime()) ? 'To be confirmed' : date.toLocaleDateString('en-GH', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'Africa/Accra' });
+};
 function orderRows(order, amountLabel = 'Total paid') {
-  return `<table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="font-size:13px;line-height:1.9"><tr><td style="color:#8e7d78">Order number</td><td align="right" style="font-weight:700">${escapeHTML(order.orderNumber || '')}</td></tr><tr><td style="color:#8e7d78">Product</td><td align="right">${escapeHTML(order.productName || 'Hair Confidante Hair Oil')}</td></tr><tr><td style="color:#8e7d78">Quantity</td><td align="right">${Number(order.quantity || 1)}</td></tr><tr><td style="color:#8e7d78">${escapeHTML(amountLabel)}</td><td align="right" style="font-weight:700">${money(order.total)}</td></tr></table>`;
+  const subtotal = Number(order.total || 0);
+  const fee = Number(order.processingFee || 0);
+  const charged = Number(order.amountPaid ?? order.chargeTotal ?? (subtotal + fee));
+  const status = String(order.status || '').toLowerCase();
+  const expectedDateRow = !['delivered', 'cancelled'].includes(status)
+    ? `<tr><td style="color:#8e7d78">Expected delivery</td><td align="right">${escapeHTML(formatDate(order.expectedDeliveryDate))}</td></tr>` : '';
+  const deliveredDate = order.deliveredAt || (Array.isArray(order.history) ? order.history.find(item => item.status === 'delivered')?.at : null);
+  const deliveredDateRow = status === 'delivered'
+    ? `<tr><td style="color:#8e7d78">Delivered on</td><td align="right">${escapeHTML(formatDate(deliveredDate))}</td></tr>` : '';
+  const feeRow = fee > 0 ? `<tr><td style="color:#8e7d78">Processing fee</td><td align="right">${money(fee)}</td></tr>` : '';
+  return `<table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="font-size:13px;line-height:1.9"><tr><td style="color:#8e7d78">Order number</td><td align="right" style="font-weight:700">${escapeHTML(order.orderNumber || '')}</td></tr><tr><td style="color:#8e7d78">Product</td><td align="right">${escapeHTML(order.productName || 'Hair Confidante Hair Oil')}</td></tr><tr><td style="color:#8e7d78">Quantity</td><td align="right">${Number(order.quantity || 1)}</td></tr><tr><td style="color:#8e7d78">Product subtotal</td><td align="right">${money(subtotal)}</td></tr>${feeRow}<tr><td style="color:#8e7d78">${escapeHTML(amountLabel)}</td><td align="right" style="font-weight:700">${money(charged)}</td></tr>${expectedDateRow}${deliveredDateRow}</table>`;
 }
 
 export function buildEmail(type, data = {}) {
@@ -50,7 +65,7 @@ export function buildEmail(type, data = {}) {
     },
     payment_failed: {
       subject: `Payment update for order ${orderNo}`,
-      html: shell({ eyebrow: 'PAYMENT UPDATE', title: 'Your payment was not confirmed.', intro: `Hi ${name}, Paystack did not confirm the payment attempt for order ${orderNo}. The store has not marked this order as paid. If your provider shows a debit, please contact us before trying again.`, content: `<p><strong>Order number:</strong> ${orderNo}</p><p><strong>Expected total:</strong> ${money(order.total)}</p><p>If your bank or Mobile Money provider shows a debit, please contact us before trying again so we can help check it.</p>`, buttonText: 'Return to the shop', buttonUrl: `${siteUrl()}/product.html` })
+      html: shell({ eyebrow: 'PAYMENT UPDATE', title: 'Your payment was not confirmed.', intro: `Hi ${name}, Paystack did not confirm the payment attempt for order ${orderNo}. The store has not marked this order as paid. If your provider shows a debit, please contact us before trying again.`, content: `<p><strong>Order number:</strong> ${orderNo}</p><p><strong>Expected total:</strong> ${money(order.chargeTotal ?? (Number(order.total || 0) + Number(order.processingFee || 0)))}</p>${order.expectedDeliveryDate ? `<p><strong>Expected delivery:</strong> ${escapeHTML(formatDate(order.expectedDeliveryDate))}</p>` : ''}<p>If your bank or Mobile Money provider shows a debit, please contact us before trying again so we can help check it.</p>`, buttonText: 'Return to the shop', buttonUrl: `${siteUrl()}/product.html` })
     },
     payment_failed_admin: {
       subject: `Payment attempt did not complete: ${orderNo}`,

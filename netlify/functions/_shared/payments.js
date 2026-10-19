@@ -59,6 +59,7 @@ export async function completePaidOrder({ db, orderRef, transactionData }) {
       inventoryReserved: false, inventoryReservationCommitted: alreadyReserved,
       paymentChannel: transactionData.channel || null,
       paystackTransactionId: String(transactionData.id || ''),
+      amountPaid: Number(order.chargeTotal ?? (Number(order.total || 0) + Number(order.processingFee || 0))),
       history: [...(Array.isArray(order.history) ? order.history : []), { status: 'preparing', at: nowIso }]
     };
     tx.update(orderRef, {
@@ -70,6 +71,7 @@ export async function completePaidOrder({ db, orderRef, transactionData }) {
       inventoryReserved: false, inventoryReservationCommitted: alreadyReserved,
       paymentChannel: updated.paymentChannel,
       paystackTransactionId: updated.paystackTransactionId,
+      amountPaid: updated.amountPaid,
       history: updated.history
     });
     return { changed: true, order: { ...updated, orderNumber: order.orderNumber } };

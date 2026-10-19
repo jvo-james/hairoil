@@ -1,0 +1,24 @@
+HAIR CONFIDANTE — REVIEW FEEDBACK PATCH
+
+HOW TO APPLY
+1. Back up the current project folder.
+2. Extract this ZIP into the root of the existing Hair Confidante repo, preserving folder paths, and allow these files to overwrite their matching files.
+3. Redeploy on Netlify after the files are in place.
+
+WHAT THIS PATCH UPDATES
+- Increases the readability of key mobile copy and finishes the responsive storefront/admin styling.
+- Keeps storefront navigation visible on desktop and tablets; the storefront hamburger is reserved for phones. The admin navigation uses its own mobile hamburger/sidebar.
+- Adds the brand favicon and social-preview image metadata. The product page in this patch does not include a separate “Product photography” section.
+- Adds expected/delivered delivery dates to public order tracking and order status emails; cancelled/delivered notifications do not show the expected date.
+- Adds the checkout processing fee while preserving the product subtotal as the admin revenue/order value. Admin shows the fee separately.
+- Adds clickable order rows, an editable order drawer, and admin account email/password settings.
+- Removes the “Write like a person” email helper section.
+
+SOCIAL PREVIEW NOTE
+The repository does not contain your production domain. `og:image` and `twitter:image` currently point to `images/og-cover.jpg` as a relative path. For the most reliable social link previews, after deployment set both values in the public HTML `<head>` blocks to the absolute URL `https://YOUR-PRODUCTION-DOMAIN/images/og-cover.jpg`.
+
+SECURITY NOTE
+The admin account settings update Firebase Authentication. If the admin email changes, update `ADMIN_EMAILS` in Netlify to include the new email address before signing in again.
+
+VALIDATION
+JavaScript syntax check passed for all 22 JavaScript files in the working project. HTML was parsed and checked for duplicate IDs in the main public/admin pages. This patch has not been tested against your live Firebase, Paystack, or email credentials.

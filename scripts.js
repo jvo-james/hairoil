@@ -1,7 +1,7 @@
 (() => {
   'use strict';
   const IMAGES = window.HC_IMAGES || {};
-  const SETTINGS_DEFAULTS = { productName: 'Hair Confidante Hair Oil', productDescription: 'A unisex hair oil designed for regular hair and scalp care. Apply a small amount along the scalp in sections and massage gently with your fingertips.', retailPrice: 70, wholesalePrice: 60, wholesaleMinQty: 10, bottleSize: '100 mL', productImageUrl: '' };
+  const SETTINGS_DEFAULTS = { productName: 'Hair Confidante Hair Oil', productDescription: 'A hair oil created to be part of your regular hair and scalp care routine. Apply in sections, then massage gently into the scalp.', retailPrice: 70, wholesalePrice: 60, wholesaleMinQty: 10, bottleSize: '100 mL', productImageUrl: '' };
   let settings = { ...SETTINGS_DEFAULTS };
   let activeReviewRating = 0;
   let trackLastResult = null;
@@ -43,37 +43,20 @@
     region._timer = setTimeout(() => { region.innerHTML = ''; }, 4800);
   }
 
-  function showButtonLoading(button, loadingLabel = 'Please wait') {
-    if (!button || button.classList.contains('is-loading')) return false;
-    button.dataset.loadingOriginal = button.innerHTML;
+  async function withButtonLoading(button, task, loadingLabel = 'Please wait') {
+    if (!button || button.classList.contains('is-loading')) return;
+    const original = button.innerHTML;
     button.disabled = true;
     button.classList.add('is-loading');
     button.setAttribute('aria-busy', 'true');
     button.innerHTML = `<span class="button-spinner"><span class="spinner ${button.classList.contains('button-light') ? 'spinner-dark' : 'spinner-light'}"></span><span>${escapeHTML(loadingLabel)}</span></span>`;
-    return true;
-  }
-
-  function restoreButtonLoading(button) {
-    if (!button) return;
-    if (button.dataset.loadingOriginal !== undefined) {
-      button.innerHTML = button.dataset.loadingOriginal;
-      delete button.dataset.loadingOriginal;
-    }
-    button.disabled = false;
-    button.classList.remove('is-loading');
-    button.removeAttribute('aria-busy');
-  }
-
-  // If checkout navigates away and the browser later restores this page from
-  // its back/forward cache, clear any navigation spinner left in the restored DOM.
-  window.addEventListener('pageshow', () => {
-    document.querySelectorAll('button[data-loading-original], button.is-loading').forEach(restoreButtonLoading);
-  });
-
-  async function withButtonLoading(button, task, loadingLabel = 'Please wait') {
-    if (!showButtonLoading(button, loadingLabel)) return;
     try { return await task(); }
-    finally { restoreButtonLoading(button); }
+    finally {
+      button.innerHTML = original;
+      button.disabled = false;
+      button.classList.remove('is-loading');
+      button.removeAttribute('aria-busy');
+    }
   }
 
   function setBodyOverlay(isOpen) {
@@ -81,56 +64,35 @@
   }
 
   function headerMarkup() {
-    const homeClass = document.body.dataset.page === 'home' ? ' site-header-home' : '';
-    return `<header class="site-header${homeClass}"><div class="header-inner">
-      <div class="header-side"><button class="menu-trigger" type="button" data-open-menu aria-label="Open navigation menu" aria-expanded="false"><span class="menu-bars" aria-hidden="true"><span></span><span></span></span><span class="menu-label">Menu</span></button></div>
-      <a class="brand-lockup header-brand-lockup" href="index.html" aria-label="Hair Confidante by MB home"><img class="header-logo-img" src="${escapeHTML(IMAGES.logoMark || IMAGES.logo || 'images/logo.jpg')}" alt="" width="42" height="42"><span class="header-brand-copy"><span class="brand-name">HAIR CONFIDANTE</span><span class="brand-by">by MB</span></span></a>
-      <div class="header-side header-side-right"><button class="track-trigger" type="button" data-open-track aria-label="Track order" title="Track order"><i class="fa-solid fa-box" aria-hidden="true"></i></button></div>
+    const logo = IMAGES.logoMark || IMAGES.logo || 'images/favicon.png';
+    return `<header class="site-header"><div class="header-inner">
+      <div class="header-side header-side-menu"><button class="menu-trigger" type="button" data-open-menu aria-label="Open navigation menu" aria-expanded="false"><span class="menu-bars" aria-hidden="true"><span></span><span></span></span><span class="menu-label">Menu</span></button></div>
+      <a class="brand-lockup header-brand-lockup" href="index.html" aria-label="Hair Confidante by MB home"><img class="header-logo-img" src="${escapeHTML(logo)}" alt="" width="42" height="42"><span class="header-brand-copy"><span class="brand-name">HAIR CONFIDANTE</span><span class="brand-by">by MB</span></span></a>
+      <nav class="desktop-site-nav" aria-label="Main navigation"><a href="index.html">Home</a><a href="product.html">Hair Oil</a><a href="wholesale.html">Wholesale</a><a href="index.html#instagram">Instagram</a></nav>
+      <div class="header-side header-side-right"><button class="track-trigger" type="button" data-open-track aria-label="Track order" title="Track order"><i class="fa-solid fa-box" aria-hidden="true"></i><span>Track order</span></button></div>
     </div></header>`;
   }
 
   function footerMarkup() {
     return `<footer class="site-footer"><div class="page-shell">
-      <div class="footer-top"><div class="footer-brand"><a class="brand-lockup" href="index.html" aria-label="Hair Confidante by MB home" style="align-items:flex-start;text-align:left"><span class="brand-name">HAIR CONFIDANTE</span><span class="brand-by">by MB</span></a><p>Hair and scalp oil for everyday use, available in retail and wholesale quantities.</p><div class="footer-socials"><a href="https://www.instagram.com/_michellebediako/" target="_blank" rel="noopener noreferrer" aria-label="Instagram"><i class="fa-brands fa-instagram"></i></a><a href="https://www.tiktok.com/@_michellebediako" target="_blank" rel="noopener noreferrer" aria-label="TikTok"><i class="fa-brands fa-tiktok"></i></a><a href="https://www.snapchat.com/add/i.michyy" target="_blank" rel="noopener noreferrer" aria-label="Snapchat"><i class="fa-brands fa-snapchat"></i></a><a href="https://www.youtube.com/@michellebediakoo" target="_blank" rel="noopener noreferrer" aria-label="YouTube"><i class="fa-brands fa-youtube"></i></a></div></div>
-      <div class="footer-newsletter"><p class="eyebrow">NEWS & PRODUCT UPDATES</p><h3>Product updates.</h3><p>Receive product news, availability updates and brand announcements.</p><form class="newsletter-form" data-newsletter-form novalidate><input type="email" name="email" placeholder="Your email address" aria-label="Your email address" maxlength="160" required><input class="honeypot" type="text" name="website" tabindex="-1" autocomplete="off" aria-hidden="true"><button type="submit">Sign me up <i class="fa-solid fa-arrow-right"></i></button></form></div></div>
+      <div class="footer-top"><div class="footer-brand"><a class="brand-lockup" href="index.html" aria-label="Hair Confidante by MB home" style="align-items:flex-start;text-align:left"><span class="brand-name">HAIR CONFIDANTE</span><span class="brand-by">by MB</span></a><p>Thoughtful hair and scalp care, made to fit into the way you already care for your hair.</p><div class="footer-socials"><a href="https://www.instagram.com/_michellebediako/" target="_blank" rel="noopener noreferrer" aria-label="Instagram"><i class="fa-brands fa-instagram"></i></a><a href="https://www.tiktok.com/@_michellebediako" target="_blank" rel="noopener noreferrer" aria-label="TikTok"><i class="fa-brands fa-tiktok"></i></a><a href="https://www.snapchat.com/add/i.michyy" target="_blank" rel="noopener noreferrer" aria-label="Snapchat"><i class="fa-brands fa-snapchat"></i></a><a href="https://www.youtube.com/@michellebediakoo" target="_blank" rel="noopener noreferrer" aria-label="YouTube"><i class="fa-brands fa-youtube"></i></a></div></div>
+      <div class="footer-newsletter"><p class="eyebrow">A NOTE NOW AND THEN</p><h3>Stay close.</h3><p>Get product updates and a little more from Hair Confidante.</p><form class="newsletter-form" data-newsletter-form novalidate><input type="email" name="email" placeholder="Your email address" aria-label="Your email address" maxlength="160" required><input class="honeypot" type="text" name="website" tabindex="-1" autocomplete="off" aria-hidden="true"><button type="submit">Sign me up <i class="fa-solid fa-arrow-right"></i></button></form></div></div>
       <nav class="footer-links" aria-label="Footer navigation"><a href="product.html">Shop Hair Oil</a><a href="wholesale.html">Wholesale</a><a href="index.html#how-to-use">How to use</a><a href="index.html#instagram">Instagram</a><a href="tel:0593231032">059 323 1032</a><button type="button" class="footer-contact-link" data-open-contact>Contact</button></nav>
-      <div class="footer-bottom"><span>© <span data-current-year>${new Date().getFullYear()}</span> Hair Confidante by MB. Made with care.</span><span class="footer-credit">Website by <a href="https://www.snapchat.com/add/jvo_james" target="_blank" rel="noopener noreferrer">jvo_james</a></span><span class="footer-socials"><a href="https://www.snapchat.com/add/jvo_james" target="_blank" rel="noopener noreferrer" aria-label="Website creator on Snapchat"><i class="fa-brands fa-snapchat"></i></a></span></div>
+      <div class="footer-bottom"><span>© <span data-current-year>${new Date().getFullYear()}</span> Hair Confidante by MB. Made with care.</span><span class="footer-credit"><span class="footer-credit-label">DESIGNED &amp; BUILT BY</span><a href="https://www.snapchat.com/add/jvo_james" target="_blank" rel="noopener noreferrer">jvo_james <i class="fa-solid fa-arrow-up-right-from-square" aria-hidden="true"></i></a></span><span class="footer-socials"><a href="https://www.snapchat.com/add/jvo_james" target="_blank" rel="noopener noreferrer" aria-label="Website creator on Snapchat"><i class="fa-brands fa-snapchat"></i></a></span></div>
     </div></footer>`;
   }
 
   function overlayMarkup() {
     return `<div class="overlay-backdrop" data-overlay-backdrop></div>
-      <aside class="site-drawer site-drawer-menu" data-menu-drawer aria-label="Site navigation" aria-hidden="true"><div class="drawer-top"><div class="drawer-brand"><strong>HAIR CONFIDANTE</strong><small>by MB</small></div><button type="button" class="icon-button" data-close-overlays aria-label="Close menu"><i class="fa-solid fa-xmark"></i></button></div><p class="drawer-kicker">FIND YOUR WAY</p><nav class="menu-links"><a href="index.html">Home <i class="fa-solid fa-arrow-up-right-from-square"></i></a><a href="product.html">Hair oil <i class="fa-solid fa-arrow-up-right-from-square"></i></a><a href="wholesale.html">Wholesale <span>FOR BUSINESS</span></a><button type="button" class="menu-track-link" data-open-track>Track order <i class="fa-solid fa-box" aria-hidden="true"></i></button><a href="index.html#how-to-use">How to use <i class="fa-solid fa-arrow-up-right-from-square"></i></a><a href="index.html#instagram">Instagram <i class="fa-solid fa-arrow-up-right-from-square"></i></a></nav><div class="drawer-footer">Questions? Call <a href="tel:0593231032">059 323 1032</a></div></aside>
-      <aside class="site-drawer site-drawer-track" data-track-drawer aria-label="Track your order" aria-hidden="true"><div class="drawer-top"><div class="drawer-brand"><strong>ORDER TRACKER</strong><small>Track your order status.</small></div><button type="button" class="icon-button" data-close-overlays aria-label="Close order tracker"><i class="fa-solid fa-xmark"></i></button></div><div class="track-drawer-heading"><p class="eyebrow">ORDER TRACKING</p><h2>Where is your<br><em>order?</em></h2><p>Enter the order number from your email and the email address used at checkout.</p></div><form class="track-form" data-track-form novalidate><label><span>Order number</span><input name="orderNumber" type="text" placeholder="HC-00001" autocapitalize="characters" maxlength="30" required></label><label><span>Email address</span><input name="email" type="email" placeholder="you@example.com" maxlength="160" required></label><button class="button button-dark button-full" type="submit"><span>Find my order</span><i class="fa-solid fa-arrow-right"></i></button><div class="checkout-alert" data-track-error role="status" hidden></div></form><div class="track-results" data-track-results hidden></div></aside>
+      <aside class="site-drawer site-drawer-menu" data-menu-drawer aria-label="Site navigation" aria-hidden="true"><div class="drawer-top"><div class="drawer-brand"><strong>HAIR CONFIDANTE</strong><small>by MB</small></div><button type="button" class="icon-button" data-close-overlays aria-label="Close menu"><i class="fa-solid fa-xmark"></i></button></div><p class="drawer-kicker">FIND YOUR WAY</p><nav class="menu-links"><a href="index.html">Home <i class="fa-solid fa-arrow-up-right-from-square"></i></a><a href="product.html">The hair oil <i class="fa-solid fa-arrow-up-right-from-square"></i></a><a href="wholesale.html">Wholesale <span>FOR BUSINESS</span></a><button type="button" class="menu-track-link" data-open-track>Track order <i class="fa-solid fa-box" aria-hidden="true"></i></button><a href="index.html#how-to-use">How to use <i class="fa-solid fa-arrow-up-right-from-square"></i></a><a href="index.html#instagram">Social diary <i class="fa-solid fa-arrow-up-right-from-square"></i></a></nav><div class="drawer-footer">Questions? Call <a href="tel:0593231032">059 323 1032</a></div></aside>
+      <aside class="site-drawer site-drawer-track" data-track-drawer aria-label="Track your order" aria-hidden="true"><div class="drawer-top"><div class="drawer-brand"><strong>ORDER TRACKER</strong><small>Order status and delivery estimate</small></div><button type="button" class="icon-button" data-close-overlays aria-label="Close order tracker"><i class="fa-solid fa-xmark"></i></button></div><div class="track-drawer-heading"><p class="eyebrow">ORDER TRACKING</p><h2>Track your<br><em>delivery.</em></h2><p>Enter the order number from your email and the email address used at checkout.</p></div><form class="track-form" data-track-form novalidate><label><span>Order number</span><input name="orderNumber" type="text" placeholder="HC-00001" autocapitalize="characters" maxlength="30" required></label><label><span>Email address</span><input name="email" type="email" placeholder="you@example.com" maxlength="160" required></label><button class="button button-dark button-full" type="submit"><span>Find my order</span><i class="fa-solid fa-arrow-right"></i></button><div class="checkout-alert" data-track-error role="status" hidden></div></form><div class="track-results" data-track-results hidden></div></aside>
       <div class="modal-wrap" data-review-modal aria-hidden="true"><div class="modal-panel" role="dialog" aria-modal="true" aria-labelledby="review-modal-title"><div class="modal-head"><div><p class="eyebrow">A NOTE FROM YOU</p><h2 id="review-modal-title">Leave a review.</h2></div><button type="button" class="icon-button" data-close-review aria-label="Close review form"><i class="fa-solid fa-xmark"></i></button></div><div class="modal-body"><form class="review-form" data-review-form novalidate><div><div class="rating-prompt"><span>Your rating</span><span class="rating-helper" data-rating-helper>Choose a star rating</span></div><div class="rating-stars" role="radiogroup" aria-label="Rate the product" data-rating-stars>${[1,2,3,4,5].map(n=>`<button type="button" role="radio" aria-checked="false" data-rating="${n}" aria-label="${n} star${n===1?'':'s'}">★</button>`).join('')}</div><input type="hidden" name="rating" value=""></div><label><span>Your name</span><input type="text" name="name" autocomplete="name" minlength="2" maxlength="70" placeholder="How should we credit you?" required></label><label><span>Email address</span><input type="email" name="email" autocomplete="email" maxlength="160" placeholder="We will not publish this" required></label><label><span>Your experience</span><textarea name="review" rows="4" minlength="12" maxlength="1200" placeholder="Tell us what you noticed after using the oil..." required></textarea></label><input class="honeypot" type="text" name="website" tabindex="-1" autocomplete="off" aria-hidden="true"><button type="submit" class="button button-dark button-full"><span>Send my review</span><i class="fa-solid fa-arrow-right"></i></button><p style="margin:0;color:var(--ink-faint);font-size:10px">Reviews are checked before they appear. Share your own honest experience.</p></form><div class="review-success" data-review-success hidden><span class="success-icon"><i class="fa-solid fa-check"></i></span><h3>That means a lot.</h3><p style="color:var(--ink-soft);font-size:12px">Your review has been received and is waiting for approval.</p><button type="button" class="button button-dark" data-close-review>Lovely, thanks</button></div></div></div></div>
       <div class="modal-wrap" data-contact-modal aria-hidden="true"><div class="modal-panel" role="dialog" aria-modal="true" aria-labelledby="contact-modal-title"><div class="modal-head"><div><p class="eyebrow">WE ARE LISTENING</p><h2 id="contact-modal-title">Send a note.</h2></div><button type="button" class="icon-button" data-close-contact aria-label="Close contact form"><i class="fa-solid fa-xmark"></i></button></div><div class="modal-body"><form class="review-form" data-contact-form novalidate><label><span>Your name</span><input type="text" name="name" autocomplete="name" minlength="2" maxlength="70" required></label><label><span>Email address</span><input type="email" name="email" autocomplete="email" maxlength="160" required></label><label><span>Phone number <small>Optional</small></span><input type="tel" name="phone" autocomplete="tel" maxlength="25"></label><label><span>Your message</span><textarea name="message" rows="4" minlength="10" maxlength="2000" required></textarea></label><input class="honeypot" type="text" name="company_site" tabindex="-1" autocomplete="off" aria-hidden="true"><div class="checkout-alert" data-contact-error role="status" hidden></div><button type="submit" class="button button-dark button-full"><span>Send message</span><i class="fa-solid fa-arrow-right"></i></button></form></div></div></div>`;
-  }
-
-  function initHeaderScroll(header) {
-    if (!header) return;
-    let lastY = Math.max(0, window.scrollY);
-    let rafPending = false;
-    const update = () => {
-      const y = Math.max(0, window.scrollY);
-      header.classList.toggle('is-scrolled', y > 24);
-      if (y < 10) header.classList.remove('is-hidden');
-      else if (y > lastY + 5 && y > 90) header.classList.add('is-hidden');
-      else if (y < lastY - 3) header.classList.remove('is-hidden');
-      lastY = y;
-      rafPending = false;
-    };
-    window.addEventListener('scroll', () => {
-      if (rafPending) return;
-      rafPending = true;
-      window.requestAnimationFrame(update);
-    }, { passive: true });
-    update();
   }
 
   function initialiseSharedShell() {
     const headerTarget = document.querySelector('[data-site-header]');
     if (headerTarget) headerTarget.innerHTML = headerMarkup();
-    initHeaderScroll(headerTarget?.querySelector('.site-header'));
     const footerTarget = document.querySelector('[data-site-footer]');
     if (footerTarget) footerTarget.innerHTML = footerMarkup();
     if (!document.querySelector('[data-menu-drawer]')) document.body.insertAdjacentHTML('beforeend', overlayMarkup());
@@ -174,7 +136,7 @@
     initContactModal();
     initTrackForm();
     initNewsletter();
-    if (isHome) { initStepsCarousel(); initStorySlider(); initBeforeAfter(); initInstagram(); }
+    if (isHome) { initStepsCarousel(); initStorySlider(); initInstagram(); }
   }
 
   function modalToggle(modal, open) {
@@ -295,7 +257,10 @@
     const timeline = order.status === 'cancelled'
       ? `<div class="track-timeline-item is-complete"><i class="fa-solid fa-circle-xmark"></i><div><strong>Cancelled</strong><br><span>Your order has been cancelled.</span></div></div>`
       : statuses.map((status, index) => `<div class="track-timeline-item ${currentIndex >= index ? 'is-complete' : ''}"><i class="${currentIndex >= index ? 'fa-solid fa-circle-check' : 'fa-regular fa-circle'}"></i><div><strong>${labels[status]}</strong>${findStatusDate(order.history, status) ? `<br><span>${formatDate(findStatusDate(order.history, status))}</span>` : ''}</div></div>`).join('');
-    results.innerHTML = `<div class="track-results-top"><div><span style="display:block;color:var(--ink-faint);font-size:9px;letter-spacing:.12em">ORDER NUMBER</span><strong>${escapeHTML(order.orderNumber)}</strong></div><span class="status-pill">${escapeHTML(labels[order.status] || order.status)}</span></div><div class="track-summary-lines"><div><span>Product</span><strong>${escapeHTML(order.productName)}</strong></div><div><span>Quantity</span><strong>${Number(order.quantity)} bottle${Number(order.quantity) === 1 ? '' : 's'}</strong></div><div><span>Total paid</span><strong>${money(order.total)}</strong></div><div><span>Order placed</span><strong>${formatDate(order.createdAt)}</strong></div></div><div class="track-timeline">${timeline}</div><button type="button" class="track-back" data-track-back><i class="fa-solid fa-arrow-left"></i> Track another order</button>`;
+    const deliveryInfo = order.status === 'delivered'
+      ? `<div class="track-delivery-date is-delivered"><span><i class="fa-solid fa-circle-check"></i> Delivered on</span><strong>${formatDate(order.deliveredAt || findStatusDate(order.history, 'delivered'))}</strong></div>`
+      : order.status === 'cancelled' ? '' : (order.expectedDeliveryDate ? `<div class="track-delivery-date"><span><i class="fa-solid fa-calendar-check"></i> Expected delivery</span><strong>${formatDate(order.expectedDeliveryDate)}</strong></div>` : `<div class="track-delivery-date"><span><i class="fa-solid fa-calendar-check"></i> Expected delivery</span><strong>We’ll confirm this shortly</strong></div>`);
+    results.innerHTML = `<div class="track-results-top"><div><span class="track-order-label">ORDER NUMBER</span><strong>${escapeHTML(order.orderNumber)}</strong></div><span class="status-pill">${escapeHTML(labels[order.status] || order.status)}</span></div>${deliveryInfo}<div class="track-summary-lines"><div><span>Product</span><strong>${escapeHTML(order.productName)}</strong></div><div><span>Quantity</span><strong>${Number(order.quantity)} bottle${Number(order.quantity) === 1 ? '' : 's'}</strong></div><div><span>Product subtotal</span><strong>${money(order.total)}</strong></div>${Number(order.processingFee || 0) ? `<div><span>Processing fee</span><strong>${money(order.processingFee)}</strong></div>` : ''}<div><span>Total charged</span><strong>${money(order.amountDue ?? (Number(order.total || 0) + Number(order.processingFee || 0)))}</strong></div><div><span>Order placed</span><strong>${formatDate(order.createdAt)}</strong></div></div><div class="track-timeline">${timeline}</div><button type="button" class="track-back" data-track-back><i class="fa-solid fa-arrow-left"></i> Track another order</button>`;
     results.querySelector('[data-track-back]')?.addEventListener('click', () => {
       form.hidden = false; results.hidden = true; results.innerHTML = ''; form.reset(); trackLastResult = null; form.querySelector('input[name="orderNumber"]')?.focus();
     });
@@ -322,7 +287,7 @@
       const data = await api('get-public-data');
       settings = { ...SETTINGS_DEFAULTS, ...(data.settings || {}) };
       if (settings.productImageUrl && /^https?:\/\//i.test(settings.productImageUrl)) {
-        document.querySelectorAll('[data-img="product"], [data-img="productHero"]').forEach(img => { img.src = settings.productImageUrl; });
+        document.querySelectorAll('[data-img="product"]').forEach(img => { img.src = settings.productImageUrl; });
       }
       document.querySelectorAll('[data-product-name]').forEach(el => { el.textContent = settings.productName || SETTINGS_DEFAULTS.productName; });
       document.querySelectorAll('[data-product-description]').forEach(el => { el.textContent = settings.productDescription || SETTINGS_DEFAULTS.productDescription; });
@@ -377,44 +342,28 @@
     const dots = [...carousel.querySelectorAll('[data-step-dot]')];
     const progress = carousel.querySelector('[data-steps-progress]');
     const count = carousel.querySelector('[data-steps-count]');
-    let inView = false;
     function goTo(index) {
       activeStep = (index + cards.length) % cards.length;
       cards.forEach((card, i) => card.classList.toggle('is-active', i === activeStep));
       dots.forEach((dot, i) => dot.classList.toggle('is-active', i === activeStep));
-      if (count) count.textContent = `${activeStep + 1} / ${cards.length}`;
+      if (count) count.textContent = `0${activeStep + 1} / 0${cards.length}`;
       if (progress) progress.style.width = `${((activeStep + 1) / cards.length) * 100}%`;
       if (isSmall()) {
+        const gap = parseFloat(getComputedStyle(track).columnGap || getComputedStyle(track).gap) || 12;
         const offset = cards[activeStep].offsetLeft - track.offsetLeft;
         track.style.transform = `translateX(${-offset}px)`;
       } else track.style.transform = '';
     }
-    const scheduleAuto = () => {
-      clearInterval(stepsTimer);
-      if (inView && isSmall() && !reduceMotion && !document.hidden) stepsTimer = setInterval(() => goTo(activeStep + 1), 4800);
-    };
-    dots.forEach(dot => dot.addEventListener('click', () => { goTo(Number(dot.dataset.stepDot)); scheduleAuto(); }));
-    carousel.querySelector('[data-step-prev]')?.addEventListener('click', () => { goTo(activeStep - 1); scheduleAuto(); });
-    carousel.querySelector('[data-step-next]')?.addEventListener('click', () => { goTo(activeStep + 1); scheduleAuto(); });
+    const restart = () => { clearInterval(stepsTimer); if (isSmall() && !reduceMotion) stepsTimer = setInterval(() => goTo(activeStep + 1), 4800); };
+    dots.forEach(dot => dot.addEventListener('click', () => { goTo(Number(dot.dataset.stepDot)); restart(); }));
+    carousel.querySelector('[data-step-prev]')?.addEventListener('click', () => { goTo(activeStep - 1); restart(); });
+    carousel.querySelector('[data-step-next]')?.addEventListener('click', () => { goTo(activeStep + 1); restart(); });
     carousel.addEventListener('touchstart', event => { stepsTouchStart = event.changedTouches[0].clientX; }, { passive: true });
-    carousel.addEventListener('touchend', event => {
-      if (stepsTouchStart == null) return;
-      const delta = event.changedTouches[0].clientX - stepsTouchStart;
-      if (Math.abs(delta) > 45) { goTo(activeStep + (delta < 0 ? 1 : -1)); scheduleAuto(); }
-      stepsTouchStart = null;
-    }, { passive: true });
+    carousel.addEventListener('touchend', event => { if (stepsTouchStart == null) return; const delta = event.changedTouches[0].clientX - stepsTouchStart; if (Math.abs(delta) > 45) { goTo(activeStep + (delta < 0 ? 1 : -1)); restart(); } stepsTouchStart = null; }, { passive: true });
     carousel.addEventListener('mouseenter', () => clearInterval(stepsTimer));
-    carousel.addEventListener('mouseleave', scheduleAuto);
-    document.addEventListener('visibilitychange', scheduleAuto);
-    window.addEventListener('resize', () => { goTo(activeStep); scheduleAuto(); });
-    if ('IntersectionObserver' in window) {
-      const observer = new IntersectionObserver(entries => {
-        inView = entries.some(entry => entry.isIntersecting);
-        scheduleAuto();
-      }, { threshold: 0.28 });
-      observer.observe(carousel);
-    } else { inView = true; scheduleAuto(); }
-    goTo(0);
+    carousel.addEventListener('mouseleave', restart);
+    window.addEventListener('resize', () => { goTo(activeStep); restart(); });
+    goTo(0); restart();
   }
 
   function initStorySlider() {
@@ -441,35 +390,12 @@
     goTo(0); restart();
   }
 
-  function initBeforeAfter() {
-    const section = document.querySelector('[data-before-after]');
-    const input = section?.querySelector('[data-before-after-range]');
-    if (!section || !input) return;
-    const update = () => section.style.setProperty('--compare-position', `${input.value}%`);
-    input.addEventListener('input', update);
-    update();
-  }
-
   async function initInstagram() {
     const grid = document.querySelector('[data-instagram-grid]');
     const note = document.querySelector('[data-instagram-note]');
     if (!grid) return;
     try {
       const result = await api('instagram-feed');
-      if (result.provider === 'elfsight' && /^[a-z0-9-]{16,80}$/i.test(String(result.elfsightWidgetId || ''))) {
-        const widgetId = String(result.elfsightWidgetId);
-        grid.innerHTML = `<div class="instagram-elfsight-wrap"><div class="elfsight-app-${escapeHTML(widgetId)}" data-elfsight-app-lazy></div></div>`;
-        let platform = document.querySelector('script[data-elfsight-platform]');
-        if (!platform) {
-          platform = document.createElement('script');
-          platform.src = 'https://static.elfsight.com/platform/platform.js';
-          platform.async = true;
-          platform.dataset.elfsightPlatform = 'true';
-          document.body.append(platform);
-        }
-        if (note) note.textContent = 'Recent posts from the connected Instagram account.';
-        return;
-      }
       if (result.configured && Array.isArray(result.posts) && result.posts.length) {
         grid.innerHTML = result.posts.map(post => `<a class="instagram-card" href="${escapeHTML(post.permalink)}" target="_blank" rel="noopener noreferrer" aria-label="Open Instagram post"><img src="${escapeHTML(post.mediaUrl)}" alt="Instagram post from Hair Confidante" loading="lazy"><span class="instagram-type"><i class="fa-brands fa-instagram"></i></span><span class="instagram-card-overlay"><i class="fa-solid fa-arrow-up-right-from-square"></i><span class="instagram-caption">${escapeHTML(post.caption || 'A little moment from Instagram.')}</span></span></a>`).join('');
         if (note) note.textContent = 'Fresh posts and reels from Instagram. Select an image to open the original post.';
@@ -477,9 +403,9 @@
       }
     } catch { /* The editorial fallback below keeps the section useful during setup. */ }
     const fallback = (IMAGES.instagramFallback || []).slice(0, 6);
-    const captions = ['Brand preview image.', 'Beauty editorial image.', 'Hair and scalp care reference.', 'Product-care editorial.', 'Hair Confidante visual preview.', 'Brand imagery preview.'];
+    const captions = ['A closer look at the details.', 'Beauty, in the everyday.', 'A moment for your hair.', 'Soft light and thoughtful care.', 'Little things that make a routine.', 'More from the beauty moodboard.'];
     grid.innerHTML = fallback.map((src, index) => `<a class="instagram-card" href="https://www.instagram.com/_michellebediako/" target="_blank" rel="noopener noreferrer" aria-label="Visit Michelle's Instagram"><img src="${escapeHTML(src)}" alt="Editorial beauty photography placeholder" loading="lazy"><span class="instagram-type"><i class="fa-brands fa-instagram"></i></span><span class="instagram-card-overlay"><i class="fa-solid fa-arrow-up-right-from-square"></i><span class="instagram-caption">${captions[index] || 'Beauty, in the everyday.'}</span></span></a>`).join('');
-    if (note) note.textContent = 'Editorial preview images are shown until the live Instagram connection is configured.';
+    if (note) note.textContent = 'Editorial preview photos are shown until the live Instagram connection is configured.';
   }
 
   function initProductPurchase() {
@@ -494,7 +420,8 @@
       const button = buttonEvent.currentTarget;
       const selected = Number(quantity?.value || 1);
       const q = Number.isInteger(selected) && selected >= 1 ? Math.min(selected, 1000) : 1;
-      if (!showButtonLoading(button, 'Opening checkout')) return;
+      button.innerHTML = `<span class="button-spinner"><span class="spinner spinner-light"></span><span>Opening checkout</span></span>`;
+      button.disabled = true;
       window.location.href = `checkout.html?mode=retail&quantity=${q}`;
     });
   }
@@ -520,7 +447,8 @@
       const amount = Number(quantity.value);
       if (!Number.isInteger(amount) || amount < minQty() || amount > 1000) { notify(`Enter a whole number from ${minQty()} to 1000.`, 'error'); quantity.focus(); return; }
       const button = form.querySelector('button[type="submit"]');
-      if (!showButtonLoading(button, 'Opening checkout')) return;
+      button.innerHTML = `<span class="button-spinner"><span class="spinner spinner-light"></span><span>Opening checkout</span></span>`;
+      button.disabled = true;
       window.location.href = `checkout.html?mode=wholesale&quantity=${amount}`;
     });
     updateWholesaleCalculator(form);
@@ -546,38 +474,35 @@
     let quantity = Number(params.get('quantity') || 1);
     const min = mode === 'wholesale' ? Math.max(1, Number(settings.wholesaleMinQty) || 10) : 1;
     if (!Number.isInteger(quantity) || quantity < min || quantity > 1000) quantity = min;
-    window.HC_CHECKOUT_MODE = mode;
-    window.HC_CHECKOUT_QUANTITY = quantity;
-    const hidden = document.createElement('input'); hidden.type = 'hidden'; hidden.name = 'mode'; hidden.value = mode; form.append(hidden);
+    window.HC_CHECKOUT_MODE = mode; window.HC_CHECKOUT_QUANTITY = quantity;
+    if (!form.elements.mode) { const hidden = document.createElement('input'); hidden.type = 'hidden'; hidden.name = 'mode'; hidden.value = mode; form.append(hidden); }
     const countrySelect = form.querySelector('[name="countryCode"]');
     const ghanaGroup = form.querySelector('[data-ghana-region-group]');
     const internationalGroup = form.querySelector('[data-international-region-group]');
     const ghanaRegion = form.querySelector('[name="ghanaRegion"]');
     const internationalRegion = form.querySelector('[name="internationalRegion"]');
     const postalCode = form.querySelector('[name="postalCode"]');
+    const countryName = form.querySelector('[name="country"]');
     const postalHelp = form.querySelector('[data-postal-help]');
-    const countryNameInput = form.querySelector('[name="country"]');
-    function syncDeliveryFields() {
-      const selected = countrySelect?.selectedOptions?.[0];
-      const isGhana = (countrySelect?.value || 'GH').toUpperCase() === 'GH';
-      if (countryNameInput) countryNameInput.value = selected?.dataset.countryName || selected?.textContent || 'Ghana';
-      if (ghanaGroup) ghanaGroup.hidden = !isGhana;
-      if (internationalGroup) internationalGroup.hidden = isGhana;
-      if (ghanaRegion) ghanaRegion.required = isGhana;
-      if (internationalRegion) internationalRegion.required = !isGhana;
-      if (postalCode) postalCode.required = !isGhana;
-      if (postalHelp) postalHelp.textContent = isGhana ? 'Optional in Ghana' : 'Required for international delivery';
-      if (isGhana && internationalRegion) internationalRegion.value = '';
-      if (!isGhana && ghanaRegion) ghanaRegion.value = '';
+    function syncCountryFields() {
+      const ghana = !countrySelect || countrySelect.value === 'GH';
+      const chosen = countrySelect?.selectedOptions?.[0];
+      if (countryName) countryName.value = chosen?.dataset.countryName || chosen?.textContent || 'Ghana';
+      if (ghanaGroup) ghanaGroup.hidden = !ghana;
+      if (internationalGroup) internationalGroup.hidden = ghana;
+      if (ghanaRegion) ghanaRegion.required = ghana;
+      if (internationalRegion) internationalRegion.required = !ghana;
+      if (postalCode) postalCode.required = !ghana;
+      if (postalHelp) postalHelp.textContent = ghana ? 'Optional in Ghana' : 'Required for international delivery';
+      if (ghana && internationalRegion) internationalRegion.value = '';
+      if (!ghana && ghanaRegion) ghanaRegion.value = '';
     }
-    countrySelect?.addEventListener('change', syncDeliveryFields);
-    syncDeliveryFields();
-    const scheduleEl = document.querySelector('[data-delivery-schedule]');
-    if (scheduleEl) scheduleEl.textContent = 'Delivery timing and fee will be confirmed by the team after checkout.';
+    countrySelect?.addEventListener('change', syncCountryFields); syncCountryFields();
     updateCheckoutSummary();
     form.addEventListener('submit', async event => {
       event.preventDefault();
       const alert = form.querySelector('[data-checkout-alert]'); alert.hidden = true; alert.classList.remove('is-success');
+      syncCountryFields();
       if (!form.reportValidity()) return;
       const values = Object.fromEntries(new FormData(form).entries());
       values.mode = mode; values.quantity = quantity;
@@ -588,34 +513,31 @@
         const result = await withButtonLoading(button, () => api('create-checkout', { method: 'POST', body: values }), 'Connecting to Paystack');
         if (!result.authorizationUrl || !/^https:\/\/(checkout\.)?paystack\.com\//.test(result.authorizationUrl)) throw new Error('Paystack did not return a valid checkout link. Please try again.');
         window.location.href = result.authorizationUrl;
-      } catch (error) {
-        alert.textContent = error.message; alert.hidden = false;
-        button.focus({ preventScroll: true });
-      }
+      } catch (error) { alert.textContent = error.message; alert.hidden = false; button.focus({ preventScroll: true }); }
     });
   }
 
   function updateCheckoutSummary() {
-    const totalEl = document.querySelector('[data-checkout-total]');
-    if (!totalEl) return;
+    const totalEl = document.querySelector('[data-checkout-total]'); if (!totalEl) return;
     const mode = window.HC_CHECKOUT_MODE || (new URLSearchParams(window.location.search).get('mode') === 'wholesale' ? 'wholesale' : 'retail');
     let quantity = window.HC_CHECKOUT_QUANTITY || Number(new URLSearchParams(window.location.search).get('quantity') || 1);
     const min = mode === 'wholesale' ? Math.max(1, Number(settings.wholesaleMinQty) || 10) : 1;
     if (!Number.isInteger(quantity) || quantity < min || quantity > 1000) quantity = min;
     const unit = Number(mode === 'wholesale' ? settings.wholesalePrice : settings.retailPrice);
-    const total = quantity * unit;
-    const modeLabel = document.querySelector('[data-checkout-mode-label]');
-    if (modeLabel) modeLabel.textContent = mode === 'wholesale' ? 'WHOLESALE' : 'RETAIL';
+    const subtotal = Math.round(quantity * unit * 100) / 100;
+    const fee = Math.round(subtotal * 0.0295 * 100) / 100;
+    const due = Math.round((subtotal + fee) * 100) / 100;
+    const modeLabel = document.querySelector('[data-checkout-mode-label]'); if (modeLabel) modeLabel.textContent = mode === 'wholesale' ? 'WHOLESALE' : 'RETAIL';
     document.querySelector('[data-checkout-product-name]')?.replaceChildren(document.createTextNode(settings.productName || SETTINGS_DEFAULTS.productName));
     document.querySelector('[data-checkout-unit-info]')?.replaceChildren(document.createTextNode(`${settings.bottleSize || '100 mL'} · ${mode === 'wholesale' ? 'Unlabelled wholesale' : 'Retail bottle'}`));
     document.querySelector('[data-checkout-quantity]')?.replaceChildren(document.createTextNode(`Qty ${quantity}`));
-    document.querySelector('[data-checkout-subtotal]')?.replaceChildren(document.createTextNode(money(total)));
-    totalEl.textContent = money(total);
-    const back = document.querySelector('[data-back-to-product]');
-    if (back) back.href = mode === 'wholesale' ? 'wholesale.html' : 'product.html';
+    document.querySelector('[data-checkout-subtotal]')?.replaceChildren(document.createTextNode(money(subtotal)));
+    const feeEl = document.querySelector('[data-checkout-processing-fee]'); if (feeEl) feeEl.textContent = money(fee);
+    totalEl.textContent = money(due);
+    const back = document.querySelector('[data-back-to-product]'); if (back) back.href = mode === 'wholesale' ? 'wholesale.html' : 'product.html';
     document.querySelector('.checkout-heading h1')?.replaceChildren(...(mode === 'wholesale' ? [document.createTextNode('Wholesale '), Object.assign(document.createElement('em'), { textContent: 'checkout.' })] : [document.createTextNode('Delivery & '), Object.assign(document.createElement('em'), { textContent: 'payment.' })]));
-    const scheduleEl = document.querySelector('[data-delivery-schedule]');
-    if (scheduleEl) { const names = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday']; const days = Array.isArray(settings.dispatchDays) ? settings.dispatchDays.map(Number).filter(n => n >= 0 && n <= 6).sort((a,b) => a-b) : [1,2,3,4,5,6]; const dayCopy = days.map(n => names[n]).join(', '); scheduleEl.textContent = `Typical delivery window: ${Number(settings.estimatedDeliveryDays || 3)} days. Regular delivery days: ${dayCopy || 'to be confirmed'}. The final delivery date and fee will be confirmed after checkout.`; }
+    const delivery = document.querySelector('[data-delivery-schedule]');
+    if (delivery) { const days = Array.isArray(settings.dispatchDays) ? settings.dispatchDays : [1,2,3,4,5,6]; const names=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday']; delivery.textContent = `Estimated delivery window: ${Number(settings.estimatedDeliveryDays || 3)} delivery days. The final delivery date and fee will be confirmed after checkout.`; }
   }
 
   function initConfirmation() {
@@ -641,49 +563,13 @@
           message.textContent = 'Your payment is confirmed. We have received your order and will email you as it moves along.';
           details.hidden = false;
           const order = data.order || { orderNumber: data.orderNumber, status: data.status };
-          const moneyText = value => `GH₵${Number(value || 0).toLocaleString('en-GH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-          const dateText = value => value ? new Date(value).toLocaleString('en-GH', { dateStyle: 'medium', timeStyle: 'short' }) : new Date().toLocaleString('en-GH', { dateStyle: 'medium', timeStyle: 'short' });
-          const deliveryAddress = [order.address, order.city, order.region, order.postalCode, order.country].filter(Boolean).map(escapeHTML).join(', ');
-          details.innerHTML = `
-            <div class="confirmation-order-no"><span>ORDER NUMBER</span><strong>${escapeHTML(order.orderNumber || data.orderNumber)}</strong></div>
-            <div class="confirmation-detail-row"><span>Payment status</span><strong>Paid · ${escapeHTML(order.status || data.status || 'preparing')}</strong></div>
-            <section class="receipt-document" data-receipt-document aria-label="Payment receipt">
-              <div class="receipt-brandline"><span class="receipt-monogram">HC</span><div><strong>HAIR CONFIDANTE</strong><small>by MB · PAYMENT RECEIPT</small></div><span class="receipt-paid">PAID</span></div>
-              <div class="receipt-heading"><h2>Payment receipt</h2><p>Reference ${escapeHTML(order.paymentReference || reference)}</p></div>
-              <div class="receipt-meta"><div><small>ORDER NUMBER</small><strong>${escapeHTML(order.orderNumber || data.orderNumber)}</strong></div><div><small>DATE PAID</small><strong>${escapeHTML(dateText(order.paidAt || order.createdAt))}</strong></div></div>
-              <div class="receipt-customer"><div><small>BILLED TO</small><strong>${escapeHTML(order.name || '')}</strong><span>${escapeHTML(order.email || '')}</span><span>${escapeHTML(order.phone || '')}</span></div><div><small>DELIVERY ADDRESS</small><span>${deliveryAddress || 'Provided at checkout'}</span></div></div>
-              <div class="receipt-line receipt-items"><span><strong>${escapeHTML(order.productName || 'Hair Confidante Hair Oil')}</strong><small>${escapeHTML(order.mode || 'retail')} · ${Number(order.quantity || 1)} bottle${Number(order.quantity) === 1 ? '' : 's'} × ${moneyText(order.unitPrice)}</small></span><strong>${moneyText(Number(order.quantity || 1) * Number(order.unitPrice || 0))}</strong></div>
-              <div class="receipt-line"><span>Product subtotal paid</span><strong>${moneyText(order.total)}</strong></div>
-              <div class="receipt-line"><span>Delivery fee</span><strong>Not included</strong></div>
-              <div class="receipt-total"><span>TOTAL PAID</span><strong>${moneyText(order.total)}</strong></div>
-              <p class="receipt-delivery-note">Delivery is arranged separately. We will contact you with the estimated delivery fee and delivery details.</p>
-              <div class="receipt-footerline"><span>Payment method: ${escapeHTML(order.paymentChannel || 'Paystack')}</span><span>Currency: GHS</span></div>
-            </section>
-            <div class="receipt-actions"><button type="button" class="button button-dark receipt-print-button" data-print-receipt><i class="fa-solid fa-print"></i> Print receipt</button><button type="button" class="button button-outline receipt-download-button" data-download-receipt><i class="fa-solid fa-download"></i> Download receipt</button></div>`;
-          const downloadReceipt = () => {
-            const receipt = details.querySelector('[data-receipt-document]');
-            if (!receipt) return;
-            const standalone = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Hair Confidante payment receipt</title><style>
-              *{box-sizing:border-box}body{margin:0;padding:28px;background:#f2ede5;color:#33212a;font:14px/1.5 Arial,sans-serif}.receipt-document{max-width:760px;margin:0 auto;padding:32px;background:#fffdf8;border:1px solid #ddd4c9}.receipt-brandline{display:flex;align-items:center;gap:11px;padding-bottom:16px;border-bottom:1px solid #e7dfd5}.receipt-monogram{display:grid;place-items:center;flex:0 0 34px;width:34px;height:34px;border:1px solid #b98167;border-radius:50%;font-family:Georgia,serif}.receipt-brandline>div{display:grid;gap:3px}.receipt-brandline>div strong{font-size:10px;letter-spacing:.13em}.receipt-brandline small,.receipt-meta small,.receipt-customer small{color:#857a7d;font-size:8px;font-weight:700;letter-spacing:.1em}.receipt-paid{margin-left:auto;padding:6px 9px;border:1px solid #718366;color:#536b46;font-size:8px;font-weight:800;letter-spacing:.12em}.receipt-heading{padding:19px 0 14px}.receipt-heading h2{margin:0 0 4px;font-size:28px}.receipt-heading p{margin:0;color:#857a7d;font-size:10px;overflow-wrap:anywhere}.receipt-meta,.receipt-customer{display:grid;grid-template-columns:1fr 1fr;gap:18px;padding:13px 0;border-bottom:1px solid #e7dfd5}.receipt-meta>div,.receipt-customer>div{display:grid;align-content:start;gap:5px;min-width:0}.receipt-meta strong,.receipt-customer strong,.receipt-customer span{font-size:10px;line-height:1.6;overflow-wrap:anywhere}.receipt-customer span{color:#62565d}.receipt-line{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;padding:12px 0;border-bottom:1px solid #e7dfd5;font-size:11px}.receipt-line>span{display:grid;gap:4px}.receipt-line small{color:#857a7d;font-size:9px}.receipt-line>strong{flex-shrink:0}.receipt-total{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:16px 0;border-bottom:1px solid #e7dfd5;font-size:10px;font-weight:800;letter-spacing:.1em}.receipt-total strong{font-size:20px;letter-spacing:0}.receipt-delivery-note{margin:13px 0 0;color:#62565d;font-size:10px;line-height:1.65}.receipt-footerline{display:flex;flex-wrap:wrap;justify-content:space-between;gap:8px;margin-top:17px;padding-top:12px;border-top:1px solid #e7dfd5;color:#857a7d;font-size:8px}@media(max-width:560px){body{padding:10px}.receipt-document{padding:18px}.receipt-meta,.receipt-customer{grid-template-columns:1fr}}
-              </style></head><body>${receipt.outerHTML}</body></html>`;
-            const url = URL.createObjectURL(new Blob([standalone], { type: 'text/html;charset=utf-8' }));
-            const link = document.createElement('a');
-            const safeOrder = String(order.orderNumber || data.orderNumber || 'receipt').replace(/[^a-z0-9-]/gi, '-');
-            link.href = url; link.download = `Hair-Confidante-Receipt-${safeOrder}.html`;
-            document.body.append(link); link.click(); link.remove();
-            setTimeout(() => URL.revokeObjectURL(url), 5000);
-          };
+          const date = value => value ? formatDate(value) : formatDate(new Date().toISOString());
+          const totalCharged = Number(order.amountDue ?? (Number(order.total || 0) + Number(order.processingFee || 0)));
+          details.innerHTML = `<div class="confirmation-order-no"><span>ORDER NUMBER</span><strong>${escapeHTML(order.orderNumber || data.orderNumber)}</strong></div><div class="confirmation-detail-row"><span>Payment status</span><strong>Paid · ${escapeHTML(order.status || data.status || 'preparing')}</strong></div><section class="receipt-document" data-receipt-document><div class="receipt-brandline"><span class="receipt-monogram">HC</span><div><strong>HAIR CONFIDANTE</strong><small>by MB · PAYMENT RECEIPT</small></div><span class="receipt-paid">PAID</span></div><h2>Payment receipt</h2><p class="receipt-reference">Reference ${escapeHTML(order.paymentReference || reference)}</p><div class="receipt-meta"><div><small>ORDER NUMBER</small><strong>${escapeHTML(order.orderNumber || data.orderNumber)}</strong></div><div><small>DATE PAID</small><strong>${escapeHTML(date(order.paidAt || order.createdAt))}</strong></div></div><div class="receipt-meta"><div><small>BILLED TO</small><strong>${escapeHTML(order.name || '')}</strong><span>${escapeHTML(order.email || '')}</span><span>${escapeHTML(order.phone || '')}</span></div><div><small>DELIVERY ADDRESS</small><span>${escapeHTML([order.address,order.city,order.region,order.postalCode,order.country].filter(Boolean).join(', '))}</span></div></div><div class="receipt-line"><span>${escapeHTML(order.productName || 'Hair Confidante Hair Oil')}<small>${Number(order.quantity || 1)} × ${money(order.unitPrice)}</small></span><strong>${money(order.total)}</strong></div><div class="receipt-line"><span>Processing fee</span><strong>${money(order.processingFee)}</strong></div><div class="receipt-total"><span>TOTAL PAID</span><strong>${money(totalCharged)}</strong></div><p class="receipt-delivery-note">Delivery is arranged separately. We will contact you with your delivery fee and arrangements.</p></section><div class="receipt-actions"><button type="button" class="button button-dark" data-print-receipt><i class="fa-solid fa-print"></i> Print receipt</button><button type="button" class="button button-outline" data-download-receipt><i class="fa-solid fa-download"></i> Download receipt</button></div>`;
+          const downloadReceipt = () => { const receipt = details.querySelector('[data-receipt-document]'); if (!receipt) return; const htmlDoc = `<!doctype html><html><head><meta charset="utf-8"><title>Hair Confidante Receipt ${escapeHTML(order.orderNumber || data.orderNumber)}</title><style>body{font:14px Arial;background:#f4efe7;color:#321f29;padding:24px}.receipt-document{max-width:700px;margin:auto;padding:28px;background:#fffdf8;border:1px solid #e5d7ca}.receipt-brandline,.receipt-meta,.receipt-line,.receipt-total{display:flex;justify-content:space-between;gap:15px;padding:12px 0;border-bottom:1px solid #e5d7ca}.receipt-meta>div{display:grid;gap:4px;flex:1}.receipt-brandline{align-items:center}.receipt-brandline small,.receipt-meta small{display:block;color:#8e7d78;font-size:9px;letter-spacing:1px}.receipt-total{font-weight:bold;font-size:20px}.receipt-delivery-note{font-size:11px;color:#66565d;line-height:1.7}</style></head><body>${receipt.outerHTML}</body></html>`; const url=URL.createObjectURL(new Blob([htmlDoc],{type:'text/html;charset=utf-8'})); const a=document.createElement('a'); a.href=url; a.download=`Hair-Confidante-Receipt-${String(order.orderNumber || data.orderNumber).replace(/[^a-z0-9-]/gi,'-')}.html`; document.body.append(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(url),5000); };
           details.querySelector('[data-print-receipt]')?.addEventListener('click', () => window.print());
           details.querySelector('[data-download-receipt]')?.addEventListener('click', downloadReceipt);
-          // Attempt a one-time automatic receipt download. The visible download button remains
-          // available if the browser blocks downloads that begin after asynchronous verification.
-          try {
-            const receiptKey = `hc-receipt-${order.paymentReference || reference}`;
-            if (!sessionStorage.getItem(receiptKey)) {
-              sessionStorage.setItem(receiptKey, 'download-attempted');
-              setTimeout(downloadReceipt, 700);
-            }
-          } catch (_) { /* Private browsing can disable session storage. */ }
+          try { const key=`hc-receipt-${order.paymentReference || reference}`; if(!sessionStorage.getItem(key)){sessionStorage.setItem(key,'attempted');setTimeout(downloadReceipt,700);} } catch {}
           return;
         }
         spinnerText.textContent = 'Payment is still processing';
@@ -704,8 +590,12 @@
   }
 
   function initReveal() {
-    // Keep content immediately visible; no staggered or scroll-triggered reveal effects.
-    document.querySelectorAll('.reveal').forEach(item => item.classList.add('is-visible'));
+    const items = document.querySelectorAll('.reveal');
+    if (!('IntersectionObserver' in window) || reduceMotion) { items.forEach(item => item.classList.add('is-visible')); return; }
+    const observer = new IntersectionObserver(entries => entries.forEach(entry => {
+      if (entry.isIntersecting) { entry.target.classList.add('is-visible'); observer.unobserve(entry.target); }
+    }), { threshold: .12, rootMargin: '0px 0px -28px 0px' });
+    items.forEach(item => observer.observe(item));
   }
 
   function init() {

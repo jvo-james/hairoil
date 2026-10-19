@@ -12,8 +12,14 @@ export const handler = async event => {
       const d = doc.data();
       return { id: doc.id, name: d.name || 'Customer', rating: Number(d.rating || 0), review: d.review || '', createdAt: d.createdAt?.toDate?.()?.toISOString?.() || null };
     }).sort((a, b) => String(b.createdAt || '').localeCompare(String(a.createdAt || '')));
-    return response(200, { settings: publicSettings(settings), reviews });
+    const result = response(200, { settings: publicSettings(settings), reviews });
+    // Most public visits need the same product/review data. Let the browser reuse
+    // it briefly and allow the CDN to collapse repeat reads across visitors.
+    result.headers = { ...result.headers, 'Cache-Control': 'public, max-age=60, s-maxage=300, stale-while-revalidate=600' };
+    return result;
   } catch (error) {
-    return response(200, { settings: { productName: 'Hair Confidante Hair Oil', productDescription: 'A hair oil created to be part of your regular hair and scalp care routine.', retailPrice: Number(process.env.RETAIL_PRICE_GHS || 70), wholesalePrice: Number(process.env.WHOLESALE_PRICE_GHS || 60), wholesaleMinQty: Number(process.env.WHOLESALE_MIN_QTY || 10), bottleSize: '100 mL', inventory: null, productImageUrl: '' }, reviews: [], warning: error.message });
+    const result = response(200, { settings: { productName: 'Hair Confidante Hair Oil', productDescription: 'A hair oil created to be part of your regular hair and scalp care routine.', retailPrice: Number(process.env.RETAIL_PRICE_GHS || 70), wholesalePrice: Number(process.env.WHOLESALE_PRICE_GHS || 60), wholesaleMinQty: Number(process.env.WHOLESALE_MIN_QTY || 10), bottleSize: '100 mL', inventory: null, productImageUrl: '' }, reviews: [], warning: error.message });
+    result.headers = { ...result.headers, 'Cache-Control': 'no-store' };
+    return result;
   }
 };

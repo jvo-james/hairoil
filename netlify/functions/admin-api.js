@@ -1,6 +1,6 @@
 import { response, parseBody, cleanString, normaliseEmail, isEmail, toISO } from './_shared/http.js';
 import { getFirebase, requireAdmin } from './_shared/firebase.js';
-import { getSettings, DEFAULT_SETTINGS, validPrice, validWholeQuantity, normaliseUrl } from './_shared/store.js';
+import { DEFAULT_SETTINGS, validPrice, validWholeQuantity, normaliseUrl } from './_shared/store.js';
 import { sendBrandedEmail } from './_shared/email.js';
 
 const VALID_STATUSES = new Set(['preparing', 'ready', 'dispatched', 'delivered', 'cancelled']);
@@ -15,10 +15,12 @@ function serialise(value) {
   return value;
 }
 
-async function docs(collection, limit = 150) {
+async function docs(collection, limit = 150, orderField = 'createdAt') {
   const { db } = getFirebase();
-  const snap = await db.collection(collection).limit(limit).get();
-  return snap.docs.map(doc => ({ id: doc.id, ...serialise(doc.data()) })).sort((a, b) => String(b.createdAt || b.updatedAt || b.subscribedAt || '').localeCompare(String(a.createdAt || a.updatedAt || a.subscribedAt || '')));
+  let query = db.collection(collection);
+  if (orderField) query = query.orderBy(orderField, 'desc');
+  const snap = await query.limit(limit).get();
+  return snap.docs.map(doc => ({ id: doc.id, ...serialise(doc.data()) }));
 }
 
 export const handler = async event => {
@@ -27,36 +29,58 @@ export const handler = async event => {
     const adminUser = await requireAdmin(event);
     const body = parseBody(event);
     const action = cleanString(body.action, 60);
-    const { db, FieldValue } = getFirebase();
+    const { db, FieldValue, admin } = getFirebase();
 
     if (action === 'dashboard') {
-      const [orders, reviews, messages, subscribers, emailCampaigns] = await Promise.all([docs('orders', 200), docs('reviews', 200), docs('messages', 200), docs('subscribers', 500), docs('emailCampaigns', 100)]);
-      const settings = await getSettings(db);
-      if (!settings.adminUid && adminUser.uid) {
-        await db.collection('settings').doc('store').set({ adminUid: adminUser.uid, adminUidLinkedAt: FieldValue.serverTimestamp() }, { merge: true });
-        settings.adminUid = adminUser.uid;
-      }
+      const ordersRef = db.collection('orders');
+      const reviewsRef = db.collection('reviews');
+      const messagesRef = db.collection('messages');
+      const subscribersRef = db.collection('subscribers');
+      // Full lists are loaded only when the admin opens the matching tab. The
+      // dashboard needs recent orders plus low-cost aggregate counters only.
+      const [orders, orderCountSnap, paidAggregateSnap, pendingReviewCountSnap, unreadMessageCountSnap, subscriberCountSnap] = await Promise.all([
+        docs('orders', 200, 'createdAt'),
+        ordersRef.count().get(),
+        ordersRef.where('paymentStatus', '==', 'success').aggregate({
+          paidOrders: admin.firestore.AggregateField.count(),
+          revenue: admin.firestore.AggregateField.sum('total')
+        }).get(),
+        reviewsRef.where('published', '==', false).count().get(),
+        messagesRef.where('status', '==', 'unread').count().get(),
+        subscribersRef.where('status', '==', 'subscribed').count().get()
+      ]);
+      const paidAggregate = paidAggregateSnap.data();
+      const settings = serialise(adminUser.storeSettings || {});
       const paidOrders = orders.filter(order => order.paymentStatus === 'success');
-      const revenue = paidOrders.reduce((sum, order) => sum + Number(order.total || 0), 0);
       return response(200, {
         ok: true,
         admin: { email: adminUser.email },
-        settings: Object.fromEntries(Object.entries({ ...DEFAULT_SETTINGS, ...serialise(settings) }).filter(([key]) => !['adminUid', 'adminUidLinkedAt'].includes(key))),
+        settings: Object.fromEntries(Object.entries({ ...DEFAULT_SETTINGS, ...settings }).filter(([key]) => !['adminUid', 'adminUidLinkedAt'].includes(key))),
         metrics: {
-          orders: orders.length,
-          paidOrders: paidOrders.length,
-          revenue,
-          pendingReviews: reviews.filter(review => review.published !== true).length,
-          unreadMessages: messages.filter(message => !['read', 'archived'].includes(message.status)).length,
-          subscribers: subscribers.filter(subscriber => subscriber.status === 'subscribed').length
+          orders: Number(orderCountSnap.data().count || 0),
+          paidOrders: Number(paidAggregate.paidOrders || 0),
+          revenue: Number(paidAggregate.revenue || 0),
+          pendingReviews: Number(pendingReviewCountSnap.data().count || 0),
+          unreadMessages: Number(unreadMessageCountSnap.data().count || 0),
+          subscribers: Number(subscriberCountSnap.data().count || 0)
         },
         orders,
-        purchases: paidOrders,
-        reviews,
-        messages,
-        subscribers,
-        emailCampaigns
+        purchases: paidOrders
       });
+    }
+
+    if (action === 'section-data') {
+      const section = cleanString(body.section, 30);
+      const sectionMap = {
+        reviews: ['reviews', 200, 'createdAt'],
+        messages: ['messages', 200, 'createdAt'],
+        subscribers: ['subscribers', 500, 'subscribedAt'],
+        email: ['emailCampaigns', 8, 'createdAt']
+      };
+      const definition = sectionMap[section];
+      if (!definition) return response(400, { error: 'Choose a valid admin section.' });
+      const items = await docs(...definition);
+      return response(200, { ok: true, section, items });
     }
 
     if (action === 'update-settings') {
@@ -72,7 +96,8 @@ export const handler = async event => {
       }
       const settings = { productName, productDescription, retailPrice, wholesalePrice, wholesaleMinQty, inventory, productImageUrl, bottleSize: '100 mL', updatedAt: FieldValue.serverTimestamp(), updatedBy: adminUser.email };
       await db.collection('settings').doc('store').set(settings, { merge: true });
-      return response(200, { ok: true, message: 'Product settings saved.' });
+      const clientSettings = { productName, productDescription, retailPrice, wholesalePrice, wholesaleMinQty, inventory, productImageUrl, bottleSize: '100 mL' };
+      return response(200, { ok: true, message: 'Product settings saved.', settings: clientSettings });
     }
 
     if (action === 'update-delivery-settings') {
@@ -81,7 +106,7 @@ export const handler = async event => {
       const estimatedDeliveryDays = validWholeQuantity(body.estimatedDeliveryDays, 1, 21);
       if (!dispatchDays.length || !estimatedDeliveryDays) return response(400, { error: 'Select at least one delivery day and an estimate from 1 to 21 days.' });
       await db.collection('settings').doc('store').set({ dispatchDays, estimatedDeliveryDays, updatedAt: FieldValue.serverTimestamp(), updatedBy: adminUser.email }, { merge: true });
-      return response(200, { ok: true, message: 'Delivery settings saved.' });
+      return response(200, { ok: true, message: 'Delivery settings saved.', settings: { dispatchDays, estimatedDeliveryDays } });
     }
 
     if (action === 'update-order-status') {
@@ -223,8 +248,10 @@ export const handler = async event => {
         const outcomes = await Promise.allSettled(batch.map(recipient => sendBrandedEmail({ to: recipient, type: 'custom', data: { subject, title: subject, intro, message }, unsubscribeEmail: toSubscribers ? recipient : undefined })));
         outcomes.forEach(outcome => outcome.status === 'fulfilled' ? sent++ : failed++);
       }
-      await db.collection('emailCampaigns').add({ subject, intro, message, toSubscribers, recipientCount: recipients.length, sent, failed, createdAt: FieldValue.serverTimestamp(), createdBy: adminUser.email });
-      return response(200, { ok: true, message: `Email processed. ${sent} sent${failed ? `, ${failed} failed` : ''}.`, sent, failed, total: recipients.length });
+      const campaignCreatedAt = new Date().toISOString();
+      const campaignRef = await db.collection('emailCampaigns').add({ subject, intro, message, toSubscribers, recipientCount: recipients.length, sent, failed, createdAt: FieldValue.serverTimestamp(), createdBy: adminUser.email });
+      const campaign = { id: campaignRef.id, subject, intro, message, toSubscribers, recipientCount: recipients.length, sent, failed, createdAt: campaignCreatedAt, createdBy: adminUser.email };
+      return response(200, { ok: true, message: `Email processed. ${sent} sent${failed ? `, ${failed} failed` : ''}.`, sent, failed, total: recipients.length, campaign });
     }
 
     return response(400, { error: 'Unknown admin action.' });

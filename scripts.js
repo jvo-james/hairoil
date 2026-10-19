@@ -565,36 +565,89 @@
     const countryNameInput = form.querySelector('[name="country"]');
     const alert = form.querySelector('[data-checkout-alert]');
 
-    // Source the country list from intl-tel-input instead of maintaining a local country array.
+    // Build a searchable delivery-country picker from intl-tel-input's maintained country dataset.
+    const countryPicker = form.querySelector('[data-country-picker]');
+    const countryTrigger = form.querySelector('#checkout-country-trigger');
+    const countryMenu = form.querySelector('[data-country-menu]');
+    const countrySearch = form.querySelector('#checkout-country-search');
+    const countryOptions = form.querySelector('[data-country-options]');
+    const countryEmpty = form.querySelector('[data-country-empty]');
+    const countrySelectedName = form.querySelector('[data-country-selected-name]');
+    const countrySelectedFlag = form.querySelector('[data-country-selected-flag]');
     const countryData = typeof window.intlTelInput?.getAllCountries === 'function'
       ? window.intlTelInput.getAllCountries()
       : [];
-    const countryFlagEmoji = iso2 => {
-      const code = String(iso2 || '').toUpperCase();
-      if (!/^[A-Z]{2}$/.test(code)) return '🌐';
-      return Array.from(code, char => String.fromCodePoint(char.charCodeAt(0) + 127397)).join('');
-    };
-    if (countrySelect) {
-      countrySelect.replaceChildren();
-      countryData
-        .slice()
-        .sort((a, b) => String(a.name).localeCompare(String(b.name), undefined, { sensitivity: 'base' }))
-        .forEach(country => {
-          const option = document.createElement('option');
-          option.value = String(country.iso2 || '').toUpperCase();
-          option.dataset.countryName = country.name;
-          option.textContent = `${countryFlagEmoji(country.iso2)} ${country.name}`;
-          countrySelect.append(option);
+    const countryDisplayNames = typeof Intl !== 'undefined' && typeof Intl.DisplayNames === 'function'
+      ? new Intl.DisplayNames(['en'], { type: 'region' })
+      : null;
+    const countries = countryData
+      .filter(country => /^[a-z]{2}$/i.test(String(country.iso2 || '')))
+      .map(country => {
+        const iso2 = String(country.iso2).toLowerCase();
+        let fallbackName = '';
+        try { fallbackName = countryDisplayNames?.of(iso2.toUpperCase()) || ''; } catch (_) {}
+        const rawName = String(country.name || '').trim();
+        const nameLooksLikeIso = rawName.toLowerCase() === iso2 || /^[A-Z]{2}$/.test(rawName);
+        const name = String((nameLooksLikeIso ? fallbackName : rawName) || fallbackName || iso2.toUpperCase()).trim();
+        return { ...country, iso2, name, dialCode: String(country.dialCode || '') };
+      })
+      .sort((a, b) => a.name.localeCompare(b.name, 'en', { sensitivity: 'base' }));
+    const countriesByCode = new Map(countries.map(country => [country.iso2, country]));
+
+    function countryFlagElement(iso2) {
+      const flag = document.createElement('span');
+      flag.className = `iti__flag iti__${String(iso2 || '').toLowerCase()}`;
+      flag.setAttribute('aria-hidden', 'true');
+      return flag;
+    }
+
+    function closeCountryMenu(returnFocus = false) {
+      if (!countryMenu || !countryTrigger) return;
+      countryMenu.hidden = true;
+      countryTrigger.setAttribute('aria-expanded', 'false');
+      if (returnFocus) countryTrigger.focus();
+    }
+
+    function filterCountries() {
+      if (!countryOptions) return;
+      const query = String(countrySearch?.value || '').trim().toLocaleLowerCase();
+      let visible = 0;
+      countryOptions.querySelectorAll('[data-country-option]').forEach(option => {
+        const matches = !query || String(option.dataset.search || '').includes(query);
+        option.hidden = !matches;
+        if (matches) visible += 1;
+      });
+      if (countryEmpty) countryEmpty.hidden = visible > 0;
+    }
+
+    if (countryOptions) {
+      countryOptions.replaceChildren();
+      countries.forEach(country => {
+        const option = document.createElement('button');
+        option.type = 'button';
+        option.className = 'checkout-country-option';
+        option.dataset.countryOption = '';
+        option.dataset.countryCode = country.iso2;
+        option.dataset.countryName = country.name;
+        option.dataset.search = `${country.name} ${country.iso2} ${country.dialCode} +${country.dialCode}`.toLocaleLowerCase();
+        option.setAttribute('role', 'option');
+        option.setAttribute('aria-selected', 'false');
+        option.append(countryFlagElement(country.iso2));
+        const name = document.createElement('span');
+        name.className = 'checkout-country-option-name';
+        name.textContent = country.name;
+        const dialCode = document.createElement('span');
+        dialCode.className = 'checkout-country-option-dial';
+        dialCode.textContent = country.dialCode ? `+${country.dialCode}` : '';
+        option.append(name, dialCode);
+        option.addEventListener('click', () => {
+          const iso2 = country.iso2;
+          if (phoneIti && phoneIti.getSelectedCountry()?.iso2 !== iso2) phoneIti.setSelectedCountry(iso2);
+          setSelectedDeliveryCountry(iso2);
+          closeCountryMenu(true);
         });
-      if (!countryData.length) {
-        const option = document.createElement('option');
-        option.value = '';
-        option.textContent = 'Country list unavailable. Refresh the page.';
-        countrySelect.append(option);
-        countrySelect.disabled = true;
-      } else {
-        countrySelect.value = countryData.some(country => String(country.iso2).toLowerCase() === 'gh') ? 'GH' : String(countryData[0].iso2).toUpperCase();
-      }
+        countryOptions.append(option);
+      });
     }
 
     let phoneIti = null;
@@ -605,14 +658,16 @@
         countrySelectorMode: 'AUTO',
         countrySearch: true,
         countryOrder: ['gh'],
+        autoPlaceholder: 'off',
         loadUtils: () => import('https://cdn.jsdelivr.net/npm/intl-tel-input@29.5.5/dist/js/utils.js')
       });
     }
 
     function syncDeliveryFields() {
-      const selected = countrySelect?.selectedOptions?.[0];
-      const isGhana = (countrySelect?.value || 'GH').toUpperCase() === 'GH';
-      if (countryNameInput) countryNameInput.value = selected?.dataset.countryName || selected?.textContent?.replace(/^\S+\s*/, '') || '';
+      const iso2 = String(countrySelect?.value || 'GH').toLowerCase();
+      const selected = countriesByCode.get(iso2);
+      const isGhana = iso2 === 'gh';
+      if (countryNameInput) countryNameInput.value = selected?.name || '';
       if (ghanaGroup) ghanaGroup.hidden = !isGhana;
       if (internationalGroup) internationalGroup.hidden = isGhana;
       if (ghanaRegion) ghanaRegion.required = isGhana;
@@ -623,22 +678,82 @@
       if (!isGhana && ghanaRegion) ghanaRegion.value = '';
     }
 
-    countrySelect?.addEventListener('change', () => {
-      const iso2 = String(countrySelect.value || '').toLowerCase();
-      if (iso2 && phoneIti) phoneIti.setSelectedCountry(iso2);
-      syncDeliveryFields();
-    });
-    if (phoneInput && phoneIti) {
-      phoneInput.addEventListener('countrychange', event => {
-        const country = event.detail || phoneIti.getSelectedCountry();
-        if (country?.iso2 && countrySelect) countrySelect.value = country.iso2.toUpperCase();
-        syncDeliveryFields();
+    function setSelectedDeliveryCountry(iso2) {
+      const code = String(iso2 || 'gh').toLowerCase();
+      const selected = countriesByCode.get(code);
+      if (!selected) return;
+      if (countrySelect) countrySelect.value = selected.iso2.toUpperCase();
+      if (countryNameInput) countryNameInput.value = selected.name;
+      if (countrySelectedName) countrySelectedName.textContent = selected.name;
+      if (countrySelectedFlag) countrySelectedFlag.replaceChildren(countryFlagElement(selected.iso2));
+      countryOptions?.querySelectorAll('[data-country-option]').forEach(option => {
+        const isSelected = option.dataset.countryCode === selected.iso2;
+        option.setAttribute('aria-selected', String(isSelected));
+        option.classList.toggle('is-selected', isSelected);
       });
-      // Keep the country selector and telephone flag aligned even if a number is autofilled.
-      const selectedPhoneCountry = phoneIti.getSelectedCountry();
-      if (selectedPhoneCountry?.iso2 && countrySelect) countrySelect.value = selectedPhoneCountry.iso2.toUpperCase();
+      syncDeliveryFields();
     }
-    syncDeliveryFields();
+
+    function openCountryMenu() {
+      if (!countryMenu || !countryTrigger) return;
+      countryMenu.hidden = false;
+      countryTrigger.setAttribute('aria-expanded', 'true');
+      if (countrySearch) {
+        countrySearch.value = '';
+        filterCountries();
+        countrySearch.focus();
+      }
+    }
+
+    countryTrigger?.addEventListener('click', () => {
+      if (countryMenu?.hidden) openCountryMenu();
+      else closeCountryMenu();
+    });
+    countrySearch?.addEventListener('input', filterCountries);
+    countrySearch?.addEventListener('keydown', event => {
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        closeCountryMenu(true);
+      } else if (event.key === 'ArrowDown') {
+        event.preventDefault();
+        countryOptions?.querySelector('[data-country-option]:not([hidden])')?.focus();
+      } else if (event.key === 'Enter') {
+        const visible = [...(countryOptions?.querySelectorAll('[data-country-option]:not([hidden])') || [])];
+        if (visible.length === 1) {
+          event.preventDefault();
+          visible[0].click();
+        }
+      }
+    });
+    countryOptions?.addEventListener('keydown', event => {
+      const options = [...countryOptions.querySelectorAll('[data-country-option]:not([hidden])')];
+      const index = options.indexOf(document.activeElement);
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        closeCountryMenu(true);
+      } else if (event.key === 'ArrowDown') {
+        event.preventDefault();
+        options[Math.min(options.length - 1, index + 1)]?.focus();
+      } else if (event.key === 'ArrowUp') {
+        event.preventDefault();
+        if (index <= 0) countrySearch?.focus();
+        else options[index - 1]?.focus();
+      }
+    });
+    document.addEventListener('click', event => {
+      if (countryPicker && !countryPicker.contains(event.target)) closeCountryMenu();
+    });
+
+    if (phoneInput && phoneIti) {
+      phoneInput.addEventListener('countrychange', () => {
+        const selectedPhoneCountry = phoneIti.getSelectedCountry();
+        if (selectedPhoneCountry?.iso2) setSelectedDeliveryCountry(selectedPhoneCountry.iso2);
+      });
+    }
+
+    // Ghana is the initial delivery country and matches the default phone flag.
+    setSelectedDeliveryCountry(phoneIti?.getSelectedCountry()?.iso2 || 'gh');
+
     const scheduleEl = document.querySelector('[data-delivery-schedule]');
     if (scheduleEl) scheduleEl.textContent = 'Delivery timing and fee will be confirmed by the team after checkout.';
     updateCheckoutSummary();

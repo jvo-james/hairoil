@@ -1,6 +1,6 @@
 export const DEFAULT_SETTINGS = {
   productName: 'Hair Confidante Hair Oil',
-  productDescription: 'A hair oil created to be part of your regular hair and scalp care routine. Apply in sections, then massage gently into the scalp.',
+  productDescription: 'A unisex hair oil designed for regular hair and scalp care. Apply a small amount along the scalp in sections and massage gently with your fingertips.',
   retailPrice: Number(process.env.RETAIL_PRICE_GHS || 70),
   wholesalePrice: Number(process.env.WHOLESALE_PRICE_GHS || 60),
   wholesaleMinQty: Number(process.env.WHOLESALE_MIN_QTY || 10),
@@ -48,18 +48,4 @@ export function normaliseUrl(value) {
     const url = new URL(String(value));
     return ['https:', 'http:'].includes(url.protocol) ? url.toString() : '';
   } catch { return ''; }
-}
-
-export function estimateDeliveryDate(settings = {}, from = new Date()) {
-  const allowed = Array.isArray(settings.dispatchDays) ? settings.dispatchDays.map(Number).filter(day => Number.isInteger(day) && day >= 0 && day <= 6) : [1, 2, 3, 4, 5, 6];
-  const deliveryDays = allowed.length ? new Set(allowed) : new Set([1, 2, 3, 4, 5, 6]);
-  const daysNeeded = Math.max(1, Math.min(21, Math.floor(Number(settings.estimatedDeliveryDays) || 3)));
-  const cursor = new Date(from);
-  cursor.setUTCHours(0, 0, 0, 0);
-  let counted = 0;
-  for (let attempts = 0; attempts < 45 && counted < daysNeeded; attempts++) {
-    cursor.setUTCDate(cursor.getUTCDate() + 1);
-    if (deliveryDays.has(cursor.getUTCDay())) counted++;
-  }
-  return cursor.toISOString().slice(0, 10);
 }

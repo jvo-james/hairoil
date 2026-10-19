@@ -1,5 +1,4 @@
 import { getFirebase } from './firebase.js';
-import { estimateDeliveryDate } from './store.js';
 
 export async function paystackRequest(path, body) {
   const key = process.env.PAYSTACK_SECRET_KEY;
@@ -42,20 +41,22 @@ export async function completePaidOrder({ db, orderRef, transactionData }) {
     let inventoryShortfall = false;
     const stock = Number(settings.inventory);
     const alreadyReserved = order.inventoryReserved === true;
-    if (!alreadyReserved && settings.inventory !== null && settings.inventory !== undefined && Number.isFinite(stock)) {
+    if (!alreadyReserved && !order.inventoryReservationReleased && settings.inventory !== null && settings.inventory !== undefined && Number.isFinite(stock)) {
+      if (stock < Number(order.quantity)) inventoryShortfall = true;
+      tx.set(settingsRef, { inventory: Math.max(0, stock - Number(order.quantity)), updatedAt: FieldValue.serverTimestamp() }, { merge: true });
+    } else if (!alreadyReserved && order.inventoryReservationReleased && settings.inventory !== null && settings.inventory !== undefined && Number.isFinite(stock)) {
       if (stock < Number(order.quantity)) inventoryShortfall = true;
       tx.set(settingsRef, { inventory: Math.max(0, stock - Number(order.quantity)), updatedAt: FieldValue.serverTimestamp() }, { merge: true });
     }
     const nowIso = new Date().toISOString();
-    const expectedDeliveryDate = order.status === 'cancelled' ? null : (order.expectedDeliveryDate || estimateDeliveryDate(settings));
     const updated = {
       ...order,
       paymentStatus: 'success',
       status: 'preparing',
       paidAt: FieldValue.serverTimestamp(),
       updatedAt: FieldValue.serverTimestamp(),
-      expectedDeliveryDate, inventoryReserved: false, inventoryReservationCommitted: alreadyReserved,
       inventoryShortfall,
+      inventoryReserved: false, inventoryReservationCommitted: alreadyReserved,
       paymentChannel: transactionData.channel || null,
       paystackTransactionId: String(transactionData.id || ''),
       history: [...(Array.isArray(order.history) ? order.history : []), { status: 'preparing', at: nowIso }]
@@ -65,8 +66,8 @@ export async function completePaidOrder({ db, orderRef, transactionData }) {
       status: updated.status,
       paidAt: updated.paidAt,
       updatedAt: updated.updatedAt,
-      expectedDeliveryDate: updated.expectedDeliveryDate, inventoryReserved: false, inventoryReservationCommitted: alreadyReserved,
       inventoryShortfall,
+      inventoryReserved: false, inventoryReservationCommitted: alreadyReserved,
       paymentChannel: updated.paymentChannel,
       paystackTransactionId: updated.paystackTransactionId,
       history: updated.history

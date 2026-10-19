@@ -18,8 +18,22 @@ function shell({ eyebrow = 'A NOTE FROM HAIR CONFIDANTE', title, intro, content,
 
 const orderUrl = () => `${siteUrl()}/`;
 const money = value => `GH₵${Number(value || 0).toFixed(2)}`;
-function orderRows(order, amountLabel = 'Total paid') {
-  return `<table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="font-size:13px;line-height:1.9"><tr><td style="color:#8e7d78">Order number</td><td align="right" style="font-weight:700">${escapeHTML(order.orderNumber || '')}</td></tr><tr><td style="color:#8e7d78">Product</td><td align="right">${escapeHTML(order.productName || 'Hair Confidante Hair Oil')}</td></tr><tr><td style="color:#8e7d78">Quantity</td><td align="right">${Number(order.quantity || 1)}</td></tr><tr><td style="color:#8e7d78">${escapeHTML(amountLabel)}</td><td align="right" style="font-weight:700">${money(order.total)}</td></tr></table>`;
+function orderRows(order, amountLabel = 'Product subtotal') {
+  const fee = Number(order.processingFee || 0);
+  const charged = Number(order.amountDue ?? (Number(order.total || 0) + fee));
+  return `<table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="font-size:13px;line-height:1.9"><tr><td style="color:#8e7d78">Order number</td><td align="right" style="font-weight:700">${escapeHTML(order.orderNumber || '')}</td></tr><tr><td style="color:#8e7d78">Product</td><td align="right">${escapeHTML(order.productName || 'Hair Confidante Hair Oil')}</td></tr><tr><td style="color:#8e7d78">Quantity</td><td align="right">${Number(order.quantity || 1)}</td></tr><tr><td style="color:#8e7d78">${escapeHTML(amountLabel)}</td><td align="right">${money(order.total)}</td></tr>${fee > 0 ? `<tr><td style="color:#8e7d78">Processing fee</td><td align="right">${money(fee)}</td></tr>` : ''}<tr><td style="padding-top:5px;border-top:1px solid #eadfd2;font-weight:700">Total charged</td><td align="right" style="padding-top:5px;border-top:1px solid #eadfd2;font-weight:700">${money(charged)}</td></tr></table>`;
+}
+function deliveryUpdate(order) {
+  const status = String(order.status || '').toLowerCase();
+  if (status === 'cancelled') return '';
+  if (status === 'delivered') {
+    const when = order.deliveredAt ? new Date(order.deliveredAt).toLocaleDateString('en-GH', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'Africa/Accra' }) : '';
+    return when ? `<p style="margin:18px 0 0;padding:12px 14px;background:#f4efe7"><strong>Delivered on:</strong> ${escapeHTML(when)}</p>` : '';
+  }
+  if (!order.expectedDeliveryDate) return '';
+  const d = new Date(`${String(order.expectedDeliveryDate).slice(0,10)}T12:00:00Z`);
+  const text = Number.isNaN(d.getTime()) ? String(order.expectedDeliveryDate) : d.toLocaleDateString('en-GH', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'Africa/Accra' });
+  return `<p style="margin:18px 0 0;padding:12px 14px;background:#f4efe7"><strong>Expected delivery:</strong> ${escapeHTML(text)}</p>`;
 }
 
 export function buildEmail(type, data = {}) {
@@ -30,31 +44,31 @@ export function buildEmail(type, data = {}) {
   const content = {
     order_preparing: {
       subject: `We've got your order ${orderNo}`,
-      html: shell({ eyebrow: 'ORDER CONFIRMED', title: 'Your order is in good hands.', intro: `Hi ${name}, thank you for choosing Hair Confidante. Your payment has been confirmed and we're preparing your order.`, content: orderRows(order) + `<p style="margin:20px 0 0">We'll email you again when your order is ready to move.</p>`, buttonText: 'Visit Hair Confidante', buttonUrl: orderUrl() })
+      html: shell({ eyebrow: 'ORDER CONFIRMED', title: 'Your order is in good hands.', intro: `Hi ${name}, thank you for choosing Hair Confidante. Your payment has been confirmed and we're preparing your order.`, content: orderRows(order) + deliveryUpdate(order) + `<p style="margin:20px 0 0">We'll email you again when your order is ready to move.</p>`, buttonText: 'Visit Hair Confidante', buttonUrl: orderUrl() })
     },
     order_ready: {
       subject: `Your order ${orderNo} is ready`,
-      html: shell({ eyebrow: 'A LITTLE UPDATE', title: 'Your order is ready.', intro: `Hi ${name}, we've marked order ${orderNo} as ready. We'll let you know when it has been dispatched.`, content: orderRows(order), buttonText: 'View Hair Confidante', buttonUrl: orderUrl() })
+      html: shell({ eyebrow: 'A LITTLE UPDATE', title: 'Your order is ready.', intro: `Hi ${name}, we've marked order ${orderNo} as ready. We'll let you know when it has been dispatched.`, content: orderRows(order) + deliveryUpdate(order), buttonText: 'View Hair Confidante', buttonUrl: orderUrl() })
     },
     order_dispatched: {
       subject: `Your order ${orderNo} is on the way`,
-      html: shell({ eyebrow: 'ON ITS WAY', title: 'Your order has been dispatched.', intro: `Hi ${name}, order ${orderNo} has been dispatched. Keep an eye out for your delivery.`, content: orderRows(order), buttonText: 'View Hair Confidante', buttonUrl: orderUrl() })
+      html: shell({ eyebrow: 'ON ITS WAY', title: 'Your order has been dispatched.', intro: `Hi ${name}, order ${orderNo} has been dispatched. Keep an eye out for your delivery.`, content: orderRows(order) + deliveryUpdate(order), buttonText: 'View Hair Confidante', buttonUrl: orderUrl() })
     },
     order_delivered: {
       subject: `Order ${orderNo} has been delivered`,
-      html: shell({ eyebrow: 'DELIVERY UPDATE', title: 'Your order has arrived.', intro: `Hi ${name}, order ${orderNo} has been marked as delivered. We hope Hair Confidante fits beautifully into your routine.`, content: orderRows(order) + `<p style="margin:20px 0 0">When you've had a chance to try it, your honest review helps the next customer.</p>`, buttonText: 'Leave a review', buttonUrl: `${siteUrl()}/product.html#reviews` })
+      html: shell({ eyebrow: 'DELIVERY UPDATE', title: 'Your order has arrived.', intro: `Hi ${name}, order ${orderNo} has been marked as delivered. We hope Hair Confidante fits beautifully into your routine.`, content: orderRows(order) + deliveryUpdate(order) + `<p style="margin:20px 0 0">When you've had a chance to try it, your honest review helps the next customer.</p>`, buttonText: 'Leave a review', buttonUrl: `${siteUrl()}/product.html#reviews` })
     },
     order_cancelled: {
       subject: `An update on order ${orderNo}`,
-      html: shell({ eyebrow: 'ORDER UPDATE', title: 'Your order was cancelled.', intro: `Hi ${name}, order ${orderNo} has been cancelled by the store. If you believe this was a mistake or need help with a refund, please contact us.`, content: orderRows(order) + `<p style="margin:20px 0 0">Please reply to this email or contact 0593231032 for assistance.</p>`, buttonText: 'Visit Hair Confidante', buttonUrl: orderUrl() })
+      html: shell({ eyebrow: 'ORDER UPDATE', title: 'Your order was cancelled.', intro: `Hi ${name}, order ${orderNo} has been cancelled by the store. If you believe this was a mistake or need help with a refund, please contact us.`, content: orderRows(order) + deliveryUpdate(order) + `<p style="margin:20px 0 0">Please reply to this email or contact 0593231032 for assistance.</p>`, buttonText: 'Visit Hair Confidante', buttonUrl: orderUrl() })
     },
     payment_failed: {
       subject: `Payment update for order ${orderNo}`,
-      html: shell({ eyebrow: 'PAYMENT UPDATE', title: 'Your payment was not confirmed.', intro: `Hi ${name}, Paystack did not confirm the payment attempt for order ${orderNo}. The store has not marked this order as paid. If your provider shows a debit, please contact us before trying again.`, content: `<p><strong>Order number:</strong> ${orderNo}</p><p><strong>Expected total:</strong> ${money(order.total)}</p><p>If your bank or Mobile Money provider shows a debit, please contact us before trying again so we can help check it.</p>`, buttonText: 'Return to the shop', buttonUrl: `${siteUrl()}/product.html` })
+      html: shell({ eyebrow: 'PAYMENT UPDATE', title: 'Your payment was not confirmed.', intro: `Hi ${name}, Paystack did not confirm the payment attempt for order ${orderNo}. The store has not marked this order as paid. If your provider shows a debit, please contact us before trying again.`, content: `<p><strong>Order number:</strong> ${orderNo}</p><p><strong>Expected total:</strong> ${money(order.amountDue ?? (Number(order.total || 0) + Number(order.processingFee || 0)))}</p><p>If your bank or Mobile Money provider shows a debit, please contact us before trying again so we can help check it.</p>`, buttonText: 'Return to the shop', buttonUrl: `${siteUrl()}/product.html` })
     },
     payment_failed_admin: {
       subject: `Payment attempt did not complete: ${orderNo}`,
-      html: shell({ eyebrow: 'PAYMENT ATTEMPT UPDATE', title: 'A payment was not confirmed.', intro: `The payment attempt for order ${orderNo} did not complete. The store has not marked this order as paid.`, content: orderRows(order, 'Expected total') + `<p><strong>Customer:</strong> ${escapeHTML(order.name || '')}<br><strong>Email:</strong> ${escapeHTML(order.email || '')}<br><strong>Phone:</strong> ${escapeHTML(order.phone || '')}</p>`, buttonText: 'Open admin', buttonUrl: `${siteUrl()}/admin.html` })
+      html: shell({ eyebrow: 'PAYMENT ATTEMPT UPDATE', title: 'A payment was not confirmed.', intro: `The payment attempt for order ${orderNo} did not complete. The store has not marked this order as paid.`, content: orderRows(order, 'Product subtotal') + `<p><strong>Customer:</strong> ${escapeHTML(order.name || '')}<br><strong>Email:</strong> ${escapeHTML(order.email || '')}<br><strong>Phone:</strong> ${escapeHTML(order.phone || '')}</p>`, buttonText: 'Open admin', buttonUrl: `${siteUrl()}/admin.html` })
     },
     review_received: {
       subject: 'Thanks for sharing your experience',
@@ -86,7 +100,7 @@ export function buildEmail(type, data = {}) {
     },
     purchase_admin: {
       subject: `Paid order received: ${orderNo}`,
-      html: shell({ eyebrow: 'NEW PAID ORDER', title: 'A new order is ready to work on.', intro: `The customer payment has been verified. Order ${orderNo} is now preparing.`, content: orderRows(order) + `<p><strong>Customer:</strong> ${escapeHTML(order.name || '')}<br><strong>Email:</strong> ${escapeHTML(order.email || '')}<br><strong>Phone:</strong> ${escapeHTML(order.phone || '')}<br><strong>Address:</strong> ${escapeHTML(order.address || '')}</p>`, buttonText: 'Manage order', buttonUrl: `${siteUrl()}/admin.html` })
+      html: shell({ eyebrow: 'NEW PAID ORDER', title: 'A new order is ready to work on.', intro: `The customer payment has been verified. Order ${orderNo} is now preparing.`, content: orderRows(order) + `<p><strong>Customer:</strong> ${escapeHTML(order.name || '')}<br><strong>Email:</strong> ${escapeHTML(order.email || '')}<br><strong>Phone:</strong> ${escapeHTML(order.phone || '')}<br><strong>Address:</strong> ${escapeHTML([order.address,order.city,order.region,order.postalCode,order.country].filter(Boolean).join(', '))}</p>`, buttonText: 'Manage order', buttonUrl: `${siteUrl()}/admin.html` })
     },
     custom: {
       subject: cleanSubject(data.subject || 'A note from Hair Confidante'),

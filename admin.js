@@ -530,8 +530,14 @@ async function submitLogin(event) {
     await loadingButton(button, async () => {
       const credential = await signInWithEmailAndPassword(auth, String(form.get('email')).trim(), String(form.get('password')));
       currentUser = credential.user;
-      await loadDashboard(false);
-      if (!dashboardData) throw new Error('This account could not access the admin workspace. Check ADMIN_EMAILS in Netlify.');
+      const loadedDashboard = await loadDashboard(false);
+      if (!loadedDashboard) {
+        const detail = String(loginError?.textContent || '').trim();
+        if (/this account does not have admin access/i.test(detail)) {
+          throw new Error('Your Firebase sign-in succeeded, but this email is not authorized for the admin workspace. Add the exact sign-in email to ADMIN_EMAILS in Netlify, make sure the variable is available to Functions, then redeploy.');
+        }
+        throw new Error(detail || 'The admin workspace could not be loaded. Check the Netlify function logs for the underlying error.');
+      }
       loginForm.reset(); bannerMessage('You are signed in.');
     }, 'Checking credentials');
   } catch (error) {

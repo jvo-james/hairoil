@@ -116,12 +116,6 @@ function renderOrders() {
   bindOrderRowClicks(target);
 }
 
-function dateInputValue(value) {
-  if (!value) return '';
-  const date = new Date(value);
-  return Number.isNaN(date.getTime()) ? '' : date.toISOString().slice(0, 10);
-}
-
 function expectedDateFallback(order) {
   if (order.expectedDeliveryDate) return order.expectedDeliveryDate;
   const date = new Date(order.createdAt || Date.now());
@@ -162,96 +156,155 @@ function openOrderDrawer(orderNumber) {
   const drawer = document.querySelector('[data-admin-order-drawer]');
   const backdrop = document.querySelector('[data-admin-order-backdrop]');
   if (!order || !drawer || !backdrop) return;
+
   closeMobileSidebar();
   const paid = order.paymentStatus === 'success';
-  const quantity = Number(order.quantity || 1);
-  const unitPrice = Number(order.unitPrice || (Number(order.total || 0) / quantity));
-  const processingFee = Number(order.processingFee ?? (Math.round(Number(order.total || 0) * 0.0295 * 100) / 100));
-  const statusOptions = ['preparing','ready','dispatched','delivered','cancelled'].map(status => `<option value="${status}" ${order.status === status ? 'selected' : ''}>${status[0].toUpperCase() + status.slice(1)}</option>`).join('');
-  const address = [order.address, order.city, order.region, order.postalCode, order.country].filter(Boolean).join(', ');
-  const deliveredDate = order.deliveredAt || (order.history || []).find(item => item.status === 'delivered')?.at;
-  const mobileDrawer = window.matchMedia('(max-width: 760px)').matches;
-  const detailsReadOnly = mobileDrawer ? 'readonly aria-readonly="true"' : '';
-  const detailsSelectDisabled = mobileDrawer ? 'disabled aria-disabled="true"' : '';
+  const quantity = Math.max(1, Number(order.quantity || 1));
+  const productSubtotal = Number(order.total || 0);
+  const unitPrice = Number(order.unitPrice ?? (productSubtotal / quantity));
+  const processingFee = Number(order.processingFee ?? (Math.round(productSubtotal * 0.0295 * 100) / 100));
+  const checkoutTotal = Number(order.chargeTotal ?? (productSubtotal + processingFee));
+  const orderType = String(order.mode || 'retail').toLowerCase() === 'wholesale' ? 'Wholesale' : 'Retail';
+  const statusLabels = {
+    awaiting_payment: 'Awaiting payment', preparing: 'Preparing', ready: 'Ready',
+    dispatched: 'Dispatched', delivered: 'Delivered', cancelled: 'Cancelled'
+  };
+  const orderStatus = String(order.status || 'awaiting_payment');
+  const safeStatusClass = orderStatus.toLowerCase().replace(/[^a-z0-9_-]/g, '');
+  const orderStatusLabel = statusLabels[orderStatus] || orderStatus.replace(/_/g, ' ').replace(/\b\w/g, letter => letter.toUpperCase());
+  const statusOptionsList = ['preparing', 'ready', 'dispatched', 'delivered', 'cancelled'];
+  if (orderStatus && !statusOptionsList.includes(orderStatus)) statusOptionsList.unshift(orderStatus);
+  const statusOptions = statusOptionsList.map(status => {
+    const label = statusLabels[status] || status.replace(/_/g, ' ').replace(/\b\w/g, letter => letter.toUpperCase());
+    return `<option value="${esc(status)}" ${orderStatus === status ? 'selected' : ''}>${esc(label)}</option>`;
+  }).join('');
+
+  const deliveredAt = order.deliveredAt || (order.history || []).find(item => item.status === 'delivered')?.at;
+  const cancelledAt = (order.history || []).find(item => item.status === 'cancelled')?.at;
+  const deliveryLabel = orderStatus === 'delivered' ? 'Delivered on' : orderStatus === 'cancelled' ? 'Cancelled' : 'Expected delivery';
+  const deliveryValue = orderStatus === 'delivered'
+    ? (deliveredAt ? shortDate(deliveredAt) : 'Delivered')
+    : orderStatus === 'cancelled'
+      ? (cancelledAt ? shortDate(cancelledAt) : 'Order cancelled')
+      : shortDate(expectedDateFallback(order));
+  const paymentLabel = paid ? 'Verified' : String(order.paymentStatus || '').toLowerCase() === 'failed' ? 'Failed' : 'Pending';
+  const paymentClass = paid ? 'is-paid' : paymentLabel === 'Failed' ? 'is-failed' : 'is-pending';
+  const country = order.country || (String(order.countryCode || '').toUpperCase() === 'GH' ? 'Ghana' : order.countryCode) || 'Not provided';
+  const addressLine = String(order.address || '').trim();
+  const display = value => esc(String(value ?? '').trim() || 'Not provided');
+  const note = String(order.note || '').trim();
+  const statusControl = paid
+    ? `<label class="admin-order-status-control"><span>New status</span><select name="status" aria-label="New order status" required>${statusOptions}</select></label><p class="admin-order-status-help"><i class="fa-regular fa-paper-plane"></i> The customer will be notified when a status update email applies.</p>`
+    : `<div class="admin-order-payment-pending"><span class="admin-order-payment-pending-icon"><i class="fa-solid fa-lock"></i></span><div><strong>Payment confirmation pending</strong><p>Status updates will be available when payment is confirmed.</p></div></div>`;
+
   drawer.innerHTML = `
-    <header class="admin-order-drawer-head"><div><span class="admin-drawer-eyebrow">ORDER FILE · ${esc(shortDate(order.createdAt))}</span><h2>${esc(order.orderNumber)}</h2><p>${esc(order.name || 'Customer')} <span>·</span> ${esc(order.mode || 'retail')} order</p></div><button type="button" data-close-order-drawer aria-label="Close order details"><i class="fa-solid fa-xmark"></i></button></header>
+    <header class="admin-order-drawer-head admin-order-head-details">
+      <div class="admin-order-head-copy">
+        <span class="admin-drawer-eyebrow">ORDER DETAILS · ${esc(shortDate(order.createdAt))}</span>
+        <h2>${esc(order.orderNumber || 'Order')}</h2>
+        <p>Placed ${esc(shortDate(order.createdAt))} <span>·</span> ${esc(orderType)} order</p>
+      </div>
+      <button type="button" data-close-order-drawer aria-label="Close order details"><i class="fa-solid fa-xmark"></i></button>
+    </header>
     <div class="admin-order-drawer-body">
-      <div class="admin-order-status-card"><div><span>Current status</span><strong>${statusPill(order.status)}</strong></div><div><span>Payment</span><strong class="admin-payment-state ${paid ? 'is-paid' : ''}"><i class="fa-solid ${paid ? 'fa-circle-check' : 'fa-clock'}"></i> ${esc(paid ? 'Verified' : order.paymentStatus || 'Pending')}</strong></div></div>
-      ${mobileDrawer ? '<p class="admin-mobile-order-note"><i class="fa-solid fa-mobile-screen-button"></i> Order details are view-only on mobile. You can update the order status below.</p>' : ''}
-      <form data-order-edit-form><input type="hidden" name="orderNumber" value="${esc(order.orderNumber)}">
-      <section class="admin-drawer-section"><div class="admin-drawer-section-heading"><span class="admin-drawer-section-icon"><i class="fa-solid fa-user"></i></span><div><h3>Customer details</h3><p>Contact information provided at checkout</p></div></div>
-        <div class="admin-drawer-fields"><label class="field"><span>Full name</span><input name="name" value="${esc(order.name || '')}" required minlength="2" maxlength="90" ${detailsReadOnly}></label><label class="field"><span>Email address</span><input name="email" type="email" value="${esc(order.email || '')}" required maxlength="160" ${detailsReadOnly}></label><label class="field"><span>Phone number</span><input name="phone" type="tel" value="${esc(order.phone || '')}" required minlength="7" maxlength="25" ${detailsReadOnly}></label><label class="field"><span>Country</span><input name="country" value="${esc(order.country || 'Ghana')}" required maxlength="100" ${detailsReadOnly}></label></div>
-      </section>
-      <section class="admin-drawer-section"><div class="admin-drawer-section-heading"><span class="admin-drawer-section-icon"><i class="fa-solid fa-location-dot"></i></span><div><h3>Delivery address</h3><p>${mobileDrawer ? 'Shipping details are view-only on mobile' : 'Editable shipping details'}</p></div></div>
-        <div class="admin-drawer-fields"><label class="field field-full"><span>Street address</span><textarea name="address" rows="2" required minlength="5" maxlength="500" ${detailsReadOnly}>${esc(order.address || '')}</textarea></label><label class="field"><span>City / town</span><input name="city" value="${esc(order.city || '')}" required maxlength="100" ${detailsReadOnly}></label><label class="field"><span>Region / state</span><input name="region" value="${esc(order.region || '')}" required maxlength="100" ${detailsReadOnly}></label><label class="field"><span>Country code</span><input name="countryCode" value="${esc(order.countryCode || 'GH')}" required maxlength="2" minlength="2" pattern="[A-Za-z]{2}" ${detailsReadOnly}></label><label class="field"><span>Postal code</span><input name="postalCode" value="${esc(order.postalCode || '')}" maxlength="30" ${String(order.countryCode || 'GH').toUpperCase() === 'GH' ? '' : 'required'} ${detailsReadOnly}></label></div>
-      </section>
-      <section class="admin-drawer-section"><div class="admin-drawer-section-heading"><span class="admin-drawer-section-icon"><i class="fa-solid fa-box-open"></i></span><div><h3>Purchased item</h3><p>Product details and the product subtotal</p></div></div>
-        <div class="admin-drawer-fields"><label class="field field-full"><span>Product name</span><input name="productName" value="${esc(order.productName || 'Hair Confidante Hair Oil')}" required maxlength="100" ${detailsReadOnly}></label><label class="field"><span>Order type</span><select name="mode" ${detailsSelectDisabled}><option value="retail" ${order.mode === 'retail' ? 'selected' : ''}>Retail</option><option value="wholesale" ${order.mode === 'wholesale' ? 'selected' : ''}>Wholesale</option></select></label><label class="field"><span>Quantity (bottles)</span><input name="quantity" type="number" min="1" max="1000" step="1" value="${quantity}" required ${detailsReadOnly}></label><label class="field"><span>Unit price (GH₵)</span><input name="unitPrice" type="number" min="0.01" max="100000" step="0.01" value="${unitPrice.toFixed(2)}" required ${detailsReadOnly}></label><label class="field"><span>Expected delivery date</span><input name="expectedDeliveryDate" type="date" value="${dateInputValue(expectedDateFallback(order))}" ${detailsReadOnly}></label></div>
-        <div class="admin-drawer-totals"><div><span>Product subtotal</span><strong data-order-edit-subtotal>${gh(order.total)}</strong></div><div><span>Processing fee <small>Listed separately</small></span><strong data-order-edit-fee>${gh(processingFee)}</strong></div><div class="admin-drawer-total"><span>Customer charge record</span><strong data-order-edit-charged>${gh(order.chargeTotal ?? (Number(order.total || 0) + processingFee))}</strong></div></div>
-      </section>
-      <section class="admin-drawer-section"><div class="admin-drawer-section-heading"><span class="admin-drawer-section-icon"><i class="fa-solid fa-message"></i></span><div><h3>Customer note</h3><p>Message the customer entered during checkout</p></div></div><label class="field"><span>Note / special instructions</span><textarea name="note" rows="3" maxlength="500" placeholder="No note provided" ${detailsReadOnly}>${esc(order.note || '')}</textarea></label></section>
-      ${paid ? `<section class="admin-drawer-section admin-status-edit"><div class="admin-drawer-section-heading"><span class="admin-drawer-section-icon"><i class="fa-solid fa-truck-fast"></i></span><div><h3>Fulfilment</h3><p>Changing status sends the appropriate customer email</p></div></div><label class="field"><span>Order status</span><select name="status">${statusOptions}</select></label>${order.status === 'delivered' && deliveredDate ? `<p class="admin-delivered-date"><i class="fa-solid fa-circle-check"></i> Delivered on ${esc(dateText(deliveredDate))}</p>` : ''}</section>` : `<div class="admin-drawer-payment-note"><i class="fa-solid fa-lock"></i> Order fulfilment becomes available once payment is verified.</div>`}
-      <div class="admin-drawer-footer"><button type="button" class="button button-outline" data-close-order-drawer>Close</button>${mobileDrawer ? (paid ? '<button type="submit" class="button button-dark"><span>Save status</span><i class="fa-solid fa-check"></i></button>' : '') : '<button type="submit" class="button button-dark"><span>Save order changes</span><i class="fa-solid fa-floppy-disk"></i></button>'}</div>
+      <form data-order-status-form class="admin-order-status-form">
+        <section class="admin-order-overview" aria-label="Order overview">
+          <div class="admin-order-overview-cell">
+            <span class="admin-order-overview-label">Order status</span>
+            <strong><span class="admin-order-status-pill is-${esc(safeStatusClass)}">${esc(orderStatusLabel)}</span></strong>
+          </div>
+          <div class="admin-order-overview-cell">
+            <span class="admin-order-overview-label">Payment</span>
+            <strong class="admin-order-payment-pill ${paymentClass}"><i class="fa-solid ${paid ? 'fa-circle-check' : paymentLabel === 'Failed' ? 'fa-circle-exclamation' : 'fa-clock'}"></i>${esc(paymentLabel)}</strong>
+          </div>
+          <div class="admin-order-overview-cell admin-order-overview-delivery">
+            <span class="admin-order-overview-label">${esc(deliveryLabel)}</span>
+            <strong>${esc(deliveryValue)}</strong>
+          </div>
+        </section>
+
+        <section class="admin-order-detail-section">
+          <div class="admin-order-section-heading"><span class="admin-order-section-icon"><i class="fa-solid fa-user"></i></span><div><h3>Customer</h3><p>Contact information from checkout</p></div></div>
+          <div class="admin-order-detail-grid">
+            <div class="admin-order-detail-card"><span class="admin-order-detail-label">Full name</span><strong>${display(order.name || 'Customer')}</strong></div>
+            <div class="admin-order-detail-card"><span class="admin-order-detail-label">Email address</span><strong class="admin-order-breakable">${display(order.email)}</strong></div>
+            <div class="admin-order-detail-card"><span class="admin-order-detail-label">Phone number</span><strong>${display(order.phone)}</strong></div>
+          </div>
+        </section>
+
+        <section class="admin-order-detail-section">
+          <div class="admin-order-section-heading"><span class="admin-order-section-icon"><i class="fa-solid fa-location-dot"></i></span><div><h3>Delivery address</h3><p>Where the order should be delivered</p></div></div>
+          <div class="admin-order-address-card"><span class="admin-order-address-icon"><i class="fa-solid fa-house"></i></span><div><span class="admin-order-detail-label">Street address</span><strong>${display(addressLine)}</strong></div></div>
+          <div class="admin-order-detail-grid admin-order-locality-grid">
+            <div class="admin-order-detail-card"><span class="admin-order-detail-label">City / town</span><strong>${display(order.city)}</strong></div>
+            <div class="admin-order-detail-card"><span class="admin-order-detail-label">Region</span><strong>${display(order.region)}</strong></div>
+            ${String(order.postalCode || '').trim() ? `<div class="admin-order-detail-card"><span class="admin-order-detail-label">Postal code</span><strong>${display(order.postalCode)}</strong></div>` : ''}
+            <div class="admin-order-detail-card"><span class="admin-order-detail-label">Country</span><strong>${display(country)}</strong></div>
+          </div>
+        </section>
+
+        <section class="admin-order-detail-section">
+          <div class="admin-order-section-heading"><span class="admin-order-section-icon"><i class="fa-solid fa-bag-shopping"></i></span><div><h3>Order summary</h3><p>Items and payment breakdown</p></div></div>
+          <article class="admin-order-product-card">
+            <span class="admin-order-product-icon"><i class="fa-solid fa-droplet"></i></span>
+            <div class="admin-order-product-copy"><strong>${display(order.productName || 'Hair Confidante Hair Oil')}</strong><span>${quantity} bottle${quantity === 1 ? '' : 's'} · ${esc(orderType)} order</span><small>${gh(unitPrice)} per bottle</small></div>
+          </article>
+          <div class="admin-order-price-breakdown">
+            <div class="admin-order-price-row"><span>Product subtotal</span><strong>${gh(productSubtotal)}</strong></div>
+            <div class="admin-order-price-row"><span>Processing fee</span><strong>${gh(processingFee)}</strong></div>
+            <div class="admin-order-price-row admin-order-price-final"><span>Customer checkout total</span><strong>${gh(checkoutTotal)}</strong></div>
+          </div>
+        </section>
+
+        <section class="admin-order-detail-section admin-order-note-section">
+          <div class="admin-order-section-heading"><span class="admin-order-section-icon"><i class="fa-regular fa-message"></i></span><div><h3>Customer note</h3><p>Special instructions shared at checkout</p></div></div>
+          <div class="admin-order-note"><i class="fa-solid fa-quote-left"></i><p>${note ? esc(note) : 'No special instructions were added to this order.'}</p></div>
+        </section>
+
+        <section class="admin-order-detail-section admin-order-fulfilment-section">
+          <div class="admin-order-section-heading"><span class="admin-order-section-icon"><i class="fa-solid fa-truck-fast"></i></span><div><h3>Fulfilment</h3><p>Keep the order progress up to date</p></div></div>
+          ${orderStatus === 'delivered' && deliveredAt ? `<div class="admin-order-delivered-record"><i class="fa-solid fa-circle-check"></i><span>Delivered on <strong>${esc(shortDate(deliveredAt))}</strong></span></div>` : ''}
+          ${statusControl}
+        </section>
+
+        <footer class="admin-drawer-footer admin-order-detail-footer">
+          <button type="button" class="button button-outline" data-close-order-drawer>Close</button>
+          ${paid ? '<button type="submit" class="button button-dark"><span>Update status</span><i class="fa-solid fa-check"></i></button>' : ''}
+        </footer>
       </form>
     </div>`;
+
   drawer.hidden = false;
   drawer.setAttribute('aria-hidden', 'false');
   backdrop.hidden = false;
   document.body.classList.add('has-admin-order-drawer');
   drawer.querySelectorAll('[data-close-order-drawer]').forEach(button => button.addEventListener('click', closeOrderDrawer));
-  if (!mobileDrawer) drawer.querySelector('[data-order-edit-form]')?.addEventListener('input', () => updateDrawerMoney(drawer));
-  drawer.querySelector('[data-order-edit-form]')?.addEventListener('submit', async event => {
+  drawer.querySelector('[data-order-status-form]')?.addEventListener('submit', async event => {
     event.preventDefault();
     const form = event.currentTarget;
-    if (!form.reportValidity()) return;
-    const button = form.querySelector('button[type="submit"]');
-    if (mobileDrawer) {
-      if (!paid || !form.elements.status) { bannerMessage('This order is not ready for a status update.', 'error'); return; }
-      const nextStatus = form.elements.status.value;
-      if (nextStatus === order.status) { bannerMessage('No status change to save.'); closeOrderDrawer(); return; }
-      try {
-        await loadingButton(button, async () => {
-          const result = await api({ action: 'update-order-status', orderNumber: order.orderNumber, status: nextStatus });
-          bannerMessage(result.message);
-          closeOrderDrawer();
-          await loadDashboard(false);
-        }, 'Saving status');
-      } catch (error) { bannerMessage(error.message, 'error'); }
+    if (!paid || !form.elements.status) {
+      bannerMessage('Order status updates are available after payment is confirmed.', 'error');
       return;
     }
-    const values = Object.fromEntries(new FormData(form).entries());
-    const nextStatus = paid ? values.status : order.status;
-    delete values.status;
+    if (!form.reportValidity()) return;
+    const nextStatus = form.elements.status.value;
+    if (nextStatus === orderStatus) {
+      bannerMessage('The order is already set to that status.');
+      return;
+    }
+    const button = form.querySelector('button[type="submit"]');
     try {
       await loadingButton(button, async () => {
-        const result = await api({ action: 'update-order-details', ...values });
-        if (paid && nextStatus !== order.status) {
-          const statusResult = await api({ action: 'update-order-status', orderNumber: order.orderNumber, status: nextStatus });
-          bannerMessage(`${result.message} ${statusResult.message}`);
-        } else bannerMessage(result.message);
+        const result = await api({ action: 'update-order-status', orderNumber: order.orderNumber, status: nextStatus });
+        bannerMessage(result.message);
         closeOrderDrawer();
         await loadDashboard(false);
-      }, 'Saving changes');
-    } catch (error) { bannerMessage(error.message, 'error'); }
+      }, 'Updating status');
+    } catch (error) {
+      bannerMessage(error.message, 'error');
+    }
   });
-  if (mobileDrawer) drawer.querySelector('[data-close-order-drawer]')?.focus({ preventScroll: true });
-  else drawer.querySelector('input[name="name"]')?.focus({ preventScroll: true });
-}
-
-function updateDrawerMoney(drawer) {
-  const form = drawer.querySelector('[data-order-edit-form]');
-  if (!form) return;
-  const quantity = Number(form.elements.quantity?.value || 0);
-  const price = Number(form.elements.unitPrice?.value || 0);
-  const subtotal = Math.round(quantity * price * 100) / 100;
-  const fee = Math.round(subtotal * 0.0295 * 100) / 100;
-  const money = value => gh(value);
-  const subtotalNode = drawer.querySelector('[data-order-edit-subtotal]');
-  const feeNode = drawer.querySelector('[data-order-edit-fee]');
-  const chargedNode = drawer.querySelector('[data-order-edit-charged]');
-  if (subtotalNode) subtotalNode.textContent = money(subtotal);
-  if (feeNode) feeNode.textContent = money(fee);
-  if (chargedNode) chargedNode.textContent = money(subtotal + fee);
+  drawer.querySelector('[data-close-order-drawer]')?.focus({ preventScroll: true });
 }
 
 function closeMobileSidebar() {

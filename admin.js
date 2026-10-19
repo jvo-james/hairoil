@@ -7,6 +7,10 @@ const appScreen = document.querySelector('[data-admin-app]');
 const loginForm = document.querySelector('[data-admin-login]');
 const loginError = document.querySelector('[data-admin-login-error]');
 const banner = document.querySelector('[data-admin-banner]');
+const adminLoading = document.querySelector('[data-admin-loading]');
+const adminLoadingTitle = document.querySelector('[data-admin-loading-title]');
+let loadedSections = new Set();
+const sectionTasks = new Map();
 const titleMap = {
   overview: ['Overview', 'Your store at a glance.'],
   orders: ['Orders', 'Every paid order and the next step.'],
@@ -56,6 +60,15 @@ async function loadingButton(button, task, label = 'Saving') {
   finally { button.innerHTML = original; button.disabled = false; button.classList.remove('is-loading'); button.removeAttribute('aria-busy'); delete button.dataset.busy; }
 }
 
+function showAdminLoader(message = 'Preparing your workspace') {
+  if (adminLoadingTitle) adminLoadingTitle.textContent = message;
+  if (adminLoading) { adminLoading.hidden = false; adminLoading.setAttribute('aria-hidden', 'false'); }
+  document.body.classList.add('admin-data-loading');
+}
+function hideAdminLoader() {
+  if (adminLoading) { adminLoading.hidden = true; adminLoading.setAttribute('aria-hidden', 'true'); }
+  document.body.classList.remove('admin-data-loading');
+}
 function showLogin() { if (loginScreen) loginScreen.hidden = false; if (appScreen) appScreen.hidden = true; }
 function showApp() { if (loginScreen) loginScreen.hidden = true; if (appScreen) appScreen.hidden = false; }
 function setSection(section) {
@@ -70,15 +83,48 @@ function setSection(section) {
   if (section === 'orders') renderOrders();
   if (section === 'product') fillProductForm();
   if (section === 'delivery') fillDeliveryForm();
-  if (section === 'reviews') renderReviews();
-  if (section === 'messages') renderMessages();
-  if (section === 'subscribers') renderSubscribers();
+  if (['reviews', 'messages', 'subscribers', 'email'].includes(section)) void ensureSectionData(section);
   if (section === 'purchases') renderPurchases();
-  if (section === 'email') renderEmailHistory();
   if (section === 'settings') fillAccountForm();
   closeMobileSidebar();
   const main = document.querySelector('.admin-main');
   if (main && window.matchMedia('(max-width: 760px)').matches) main.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+async function ensureSectionData(section) {
+  const config = {
+    reviews: { key: 'reviews', target: '[data-reviews-table]', render: renderReviews, label: 'reviews' },
+    messages: { key: 'messages', target: '[data-messages-table]', render: renderMessages, label: 'messages' },
+    subscribers: { key: 'subscribers', target: '[data-subscribers-table]', render: renderSubscribers, label: 'subscribers' },
+    email: { key: 'emailCampaigns', target: '[data-email-history]', render: renderEmailHistory, label: 'email activity' }
+  }[section];
+  if (!config || loadedSections.has(section) || !dashboardData) return;
+  if (sectionTasks.has(section)) return sectionTasks.get(section);
+  const target = document.querySelector(config.target);
+  if (target) target.innerHTML = '<div class="admin-loading-inline">Loading ' + esc(config.label) + '</div>';
+  const task = (async () => {
+    try {
+      const result = await api({ action: 'section-data', section });
+      if (!currentUser || !dashboardData) return;
+      const incomingItems = Array.isArray(result.items) ? result.items : [];
+      // Preserve a just-created campaign if its list request began before sending completed.
+      if (section === 'email') {
+        const currentItems = dashboardData.emailCampaigns || [];
+        const seen = new Set(currentItems.map(item => item.id || `${item.subject}|${item.createdAt}`));
+        dashboardData.emailCampaigns = [...currentItems, ...incomingItems.filter(item => !seen.has(item.id || `${item.subject}|${item.createdAt}`))]
+          .sort((a, b) => String(b.createdAt || '').localeCompare(String(a.createdAt || ''))).slice(0, 8);
+      } else dashboardData[config.key] = incomingItems;
+      loadedSections.add(section);
+      config.render();
+    } catch (error) {
+      if (target) target.innerHTML = emptyTable('This section could not be loaded. Please try again.');
+      bannerMessage(error.message || 'This section could not be loaded.', 'error');
+    } finally {
+      if (sectionTasks.get(section) === task) sectionTasks.delete(section);
+    }
+  })();
+  sectionTasks.set(section, task);
+  return task;
 }
 
 function statusPill(status) {
@@ -297,8 +343,11 @@ function openOrderDrawer(orderNumber) {
       await loadingButton(button, async () => {
         const result = await api({ action: 'update-order-status', orderNumber: order.orderNumber, status: nextStatus });
         bannerMessage(result.message);
+        const orderIndex = (dashboardData?.orders || []).findIndex(item => item.orderNumber === order.orderNumber);
+        if (orderIndex >= 0) dashboardData.orders[orderIndex] = { ...dashboardData.orders[orderIndex], ...(result.order || {}), status: nextStatus };
+        dashboardData.purchases = (dashboardData?.orders || []).filter(item => item.paymentStatus === 'success');
+        renderMetrics(); renderOrders(); renderPurchases();
         closeOrderDrawer();
-        await loadDashboard(false);
       }, 'Updating status');
     } catch (error) {
       bannerMessage(error.message, 'error');
@@ -368,11 +417,13 @@ function renderReviews() {
   target.querySelectorAll('[data-review-toggle]').forEach(button => button.addEventListener('click', () => runAction(button, async () => {
     const published = button.dataset.publish === 'true';
     const result = await api({ action: 'review-status', id: button.dataset.reviewToggle, published });
-    bannerMessage(result.message); await loadDashboard(false);
+    const review = (dashboardData?.reviews || []).find(item => item.id === button.dataset.reviewToggle);
+    if (review) { review.published = published; review.moderationStatus = published ? 'approved' : 'hidden'; }
+    bannerMessage(result.message); renderReviews();
   }, published ? 'Publishing' : 'Hiding')));
   target.querySelectorAll('[data-review-delete]').forEach(button => button.addEventListener('click', () => {
     if (!window.confirm('Delete this review permanently?')) return;
-    runAction(button, async () => { const result = await api({ action: 'delete-review', id: button.dataset.reviewDelete }); bannerMessage(result.message); await loadDashboard(false); }, 'Deleting');
+    runAction(button, async () => { const result = await api({ action: 'delete-review', id: button.dataset.reviewDelete }); dashboardData.reviews = (dashboardData.reviews || []).filter(item => item.id !== button.dataset.reviewDelete); bannerMessage(result.message); renderReviews(); }, 'Deleting');
   }));
 }
 
@@ -383,8 +434,8 @@ function renderMessages() {
   const messages = (dashboardData?.messages || []).filter(message => filter === 'all' || message.status === filter || (filter === 'unread' && !['read','archived'].includes(message.status)));
   const rows = messages.map(message => `<tr><td><strong>${esc(message.name)}</strong><small>${esc(message.email)}</small><small>${esc(message.phone || 'No phone number')}</small></td><td><div class="admin-message-preview" style="white-space:normal">${esc(message.message)}</div><small>${esc(dateText(message.createdAt))}</small></td><td>${statusPill(message.status || 'unread')}</td><td><div class="table-actions"><button class="table-action" type="button" data-reply-message="${esc(message.id)}">Reply</button>${message.status === 'read' ? `<button class="table-action" type="button" data-message-state="${esc(message.id)}" data-state="archived">Archive</button>` : `<button class="table-action" type="button" data-message-state="${esc(message.id)}" data-state="read">Mark read</button>`}<button class="table-action is-danger" type="button" data-message-delete="${esc(message.id)}">Delete</button></div></td></tr>`);
   target.innerHTML = table(['From', 'Message', 'Status', 'Actions'], rows, 880);
-  target.querySelectorAll('[data-message-state]').forEach(button => button.addEventListener('click', () => runAction(button, async () => { const result = await api({ action: 'message-status', id: button.dataset.messageState, status: button.dataset.state }); bannerMessage(result.message); await loadDashboard(false); }, 'Saving')));
-  target.querySelectorAll('[data-message-delete]').forEach(button => button.addEventListener('click', () => { if (!window.confirm('Delete this message permanently?')) return; runAction(button, async () => { const result = await api({ action: 'delete-message', id: button.dataset.messageDelete }); bannerMessage(result.message); await loadDashboard(false); }, 'Deleting'); }));
+  target.querySelectorAll('[data-message-state]').forEach(button => button.addEventListener('click', () => runAction(button, async () => { const result = await api({ action: 'message-status', id: button.dataset.messageState, status: button.dataset.state }); const message = (dashboardData?.messages || []).find(item => item.id === button.dataset.messageState); if (message) message.status = button.dataset.state; bannerMessage(result.message); renderMessages(); }, 'Saving')));
+  target.querySelectorAll('[data-message-delete]').forEach(button => button.addEventListener('click', () => { if (!window.confirm('Delete this message permanently?')) return; runAction(button, async () => { const result = await api({ action: 'delete-message', id: button.dataset.messageDelete }); dashboardData.messages = (dashboardData.messages || []).filter(item => item.id !== button.dataset.messageDelete); bannerMessage(result.message); renderMessages(); }, 'Deleting'); }));
   target.querySelectorAll('[data-reply-message]').forEach(button => button.addEventListener('click', () => {
     const message = (dashboardData?.messages || []).find(row => row.id === button.dataset.replyMessage);
     setSection('email');
@@ -399,7 +450,7 @@ function renderSubscribers() {
   const subscribers = dashboardData?.subscribers || [];
   const rows = subscribers.map(subscriber => `<tr><td><strong>${esc(subscriber.email)}</strong><small>${esc(subscriber.name || 'No name provided')}</small></td><td>${statusPill(subscriber.status || 'subscribed')}</td><td>${esc(dateText(subscriber.subscribedAt))}</td><td><button type="button" class="table-action" data-sub-status="${esc(subscriber.id)}" data-state="${subscriber.status === 'subscribed' ? 'unsubscribed' : 'subscribed'}">${subscriber.status === 'subscribed' ? 'Unsubscribe' : 'Resubscribe'}</button></td></tr>`);
   target.innerHTML = table(['Email', 'Status', 'Joined', 'Actions'], rows, 690);
-  target.querySelectorAll('[data-sub-status]').forEach(button => button.addEventListener('click', () => runAction(button, async () => { const result = await api({ action: 'subscriber-status', id: button.dataset.subStatus, status: button.dataset.state }); bannerMessage(result.message); await loadDashboard(false); }, 'Updating')));
+  target.querySelectorAll('[data-sub-status]').forEach(button => button.addEventListener('click', () => runAction(button, async () => { const nextStatus = button.dataset.state; const subscriber = (dashboardData?.subscribers || []).find(item => item.id === button.dataset.subStatus); const previousStatus = subscriber?.status || 'subscribed'; const result = await api({ action: 'subscriber-status', id: button.dataset.subStatus, status: nextStatus }); if (subscriber) subscriber.status = nextStatus; if (previousStatus !== nextStatus && dashboardData?.metrics) dashboardData.metrics.subscribers = Math.max(0, Number(dashboardData.metrics.subscribers || 0) + (nextStatus === 'subscribed' ? 1 : -1)); bannerMessage(result.message); renderSubscribers(); renderMetrics(); }, 'Updating')));
 }
 
 function renderPurchases() {
@@ -444,13 +495,16 @@ function loadDashboard(showNotice = true) {
       showApp();
       const account = document.querySelector('[data-admin-email]');
       if (account) account.textContent = data.admin?.email || currentUser?.email || 'Admin account';
-      renderMetrics(); renderOrders(); fillProductForm(); fillDeliveryForm(); renderReviews(); renderMessages(); renderSubscribers(); renderPurchases(); renderEmailHistory(); fillAccountForm();
+      loadedSections = new Set();
+      sectionTasks.clear();
+      renderMetrics(); renderOrders(); fillProductForm(); fillDeliveryForm(); renderPurchases(); fillAccountForm();
+      if (['reviews', 'messages', 'subscribers', 'email'].includes(activeSection)) void ensureSectionData(activeSection);
       if (showNotice) bannerMessage('Workspace is up to date.');
       return data;
     } catch (error) {
-      if (/admin access|sign in|expired/i.test(error.message)) {
-        bannerMessage(error.message, 'error');
+      if (!dashboardData || /admin access|sign in|expired/i.test(error.message)) {
         showLogin();
+        if (loginError) { loginError.textContent = error.message || 'The workspace could not be loaded. Please try again.'; loginError.hidden = false; }
       } else bannerMessage(error.message, 'error');
       return null;
     } finally {
@@ -471,6 +525,7 @@ async function submitLogin(event) {
     loginError.hidden = false; return;
   }
   const form = new FormData(loginForm);
+  showAdminLoader('Signing in securely');
   try {
     await loadingButton(button, async () => {
       const credential = await signInWithEmailAndPassword(auth, String(form.get('email')).trim(), String(form.get('password')));
@@ -483,6 +538,8 @@ async function submitLogin(event) {
     try { if (auth.currentUser) await signOut(auth); } catch { /* no action */ }
     currentUser = null;
     loginError.textContent = error.message || 'We could not sign you in.'; loginError.hidden = false;
+  } finally {
+    hideAdminLoader();
   }
 }
 
@@ -493,14 +550,20 @@ function bindNavigation() {
   document.querySelector('[data-admin-order-backdrop]')?.addEventListener('click', closeOrderDrawer);
   document.addEventListener('keydown', event => { if (event.key === 'Escape') { closeMobileSidebar(); closeOrderDrawer(); } });
   document.querySelectorAll('[data-admin-go]').forEach(button => button.addEventListener('click', () => setSection(button.dataset.adminGo)));
-  document.querySelector('[data-admin-refresh]')?.addEventListener('click', async event => runAction(event.currentTarget, () => loadDashboard(false), 'Refreshing'));
+  document.querySelector('[data-admin-refresh]')?.addEventListener('click', async event => runAction(event.currentTarget, async () => { showAdminLoader('Refreshing your workspace'); try { return await loadDashboard(false); } finally { hideAdminLoader(); } }, 'Refreshing'));
   document.querySelector('[data-order-search]')?.addEventListener('input', renderOrders);
   document.querySelector('[data-order-filter]')?.addEventListener('change', renderOrders);
   document.querySelector('[data-review-filter]')?.addEventListener('change', renderReviews);
   document.querySelector('[data-message-filter]')?.addEventListener('change', renderMessages);
   document.querySelector('[data-admin-signout]')?.addEventListener('click', async event => {
-    try { await loadingButton(event.currentTarget, () => signOut(auth), 'Signing out'); }
-    finally { currentUser = null; dashboardData = null; showLogin(); }
+    showAdminLoader('Signing out securely');
+    try {
+      await loadingButton(event.currentTarget, () => signOut(auth), 'Signing out');
+      currentUser = null; dashboardData = null; loadedSections.clear(); sectionTasks.clear();
+      showLogin();
+    } catch (error) {
+      bannerMessage(error.message || 'Could not sign out. Please try again.', 'error');
+    } finally { hideAdminLoader(); }
   });
 }
 
@@ -511,7 +574,7 @@ function bindForms() {
     if (!productForm.reportValidity()) return;
     const button = productForm.querySelector('button[type="submit"]');
     const values = Object.fromEntries(new FormData(productForm).entries());
-    runAction(button, async () => { const result = await api({ action: 'update-settings', ...values }); bannerMessage(result.message); await loadDashboard(false); }, 'Saving product');
+    runAction(button, async () => { const result = await api({ action: 'update-settings', ...values }); if (result.settings && dashboardData) dashboardData.settings = { ...dashboardData.settings, ...result.settings }; fillProductForm(); bannerMessage(result.message); }, 'Saving product');
   });
   const deliveryForm = document.querySelector('[data-delivery-settings-form]');
   deliveryForm?.addEventListener('submit', event => {
@@ -520,7 +583,7 @@ function bindForms() {
     const days = [...deliveryForm.querySelectorAll('[data-admin-dispatch-day]:checked')].map(input => Number(input.value));
     if (!days.length) { bannerMessage('Select at least one delivery day.', 'error'); return; }
     const button = deliveryForm.querySelector('button[type="submit"]');
-    runAction(button, async () => { const result = await api({ action: 'update-delivery-settings', dispatchDays: days, estimatedDeliveryDays: deliveryForm.elements.estimatedDeliveryDays.value }); bannerMessage(result.message); await loadDashboard(false); }, 'Saving delivery settings');
+    runAction(button, async () => { const result = await api({ action: 'update-delivery-settings', dispatchDays: days, estimatedDeliveryDays: deliveryForm.elements.estimatedDeliveryDays.value }); if (result.settings && dashboardData) dashboardData.settings = { ...dashboardData.settings, ...result.settings }; fillDeliveryForm(); bannerMessage(result.message); }, 'Saving delivery settings');
   });
   const accountForm = document.querySelector('[data-admin-account-form]');
   accountForm?.addEventListener('submit', event => {
@@ -545,8 +608,8 @@ function bindForms() {
       fillAccountForm();
       const account = document.querySelector('[data-admin-email]');
       if (account) account.textContent = currentUser.email || 'Admin account';
+      if (dashboardData?.admin) dashboardData.admin.email = currentUser.email || dashboardData.admin.email;
       bannerMessage('Your admin account settings have been updated.');
-      await loadDashboard(false);
     }, 'Updating account');
   });
   
@@ -559,26 +622,39 @@ function bindForms() {
     if (values.toSubscribers && !window.confirm('Send this email to every active subscriber?')) return;
     if (!values.toSubscribers && !values.to) { bannerMessage('Add a recipient email or select all active subscribers.', 'error'); return; }
     const button = emailForm.querySelector('button[type="submit"]');
-    runAction(button, async () => { const result = await api({ action: 'send-email', ...values }); bannerMessage(result.message); emailForm.reset(); await loadDashboard(false); }, 'Sending emails');
+    runAction(button, async () => { const result = await api({ action: 'send-email', ...values }); if (result.campaign && dashboardData) { dashboardData.emailCampaigns = [result.campaign, ...(dashboardData.emailCampaigns || [])].slice(0, 8); if (loadedSections.has('email')) renderEmailHistory(); } bannerMessage(result.message); emailForm.reset(); }, 'Sending emails');
   });
 }
 
 function init() {
   if (loginForm) loginForm.addEventListener('submit', submitLogin);
   bindNavigation(); bindForms();
+  showAdminLoader('Preparing your workspace');
   try {
-    if (!config.apiKey || String(config.apiKey).includes('REPLACE')) { showLogin(); return; }
+    if (!config.apiKey || String(config.apiKey).includes('REPLACE')) {
+      showLogin();
+      if (loginError) { loginError.textContent = 'Add your Firebase web configuration to firebase-config.js before signing in.'; loginError.hidden = false; }
+      hideAdminLoader();
+      return;
+    }
     const app = initializeApp(config);
     auth = getAuth(app);
     onAuthStateChanged(auth, async user => {
+      showAdminLoader(user ? 'Loading your workspace' : 'Preparing sign-in');
       currentUser = user;
-      if (!user) { showLogin(); return; }
-      showApp();
-      await loadDashboard(false);
+      if (!user) {
+        dashboardData = null; loadedSections.clear(); sectionTasks.clear();
+        showLogin();
+        hideAdminLoader();
+        return;
+      }
+      try { await loadDashboard(false); }
+      finally { hideAdminLoader(); }
     });
   } catch (error) {
     if (loginError) { loginError.textContent = error.message || 'Firebase could not be initialised.'; loginError.hidden = false; }
     showLogin();
+    hideAdminLoader();
   }
 }
 

@@ -555,6 +555,7 @@
     window.HC_CHECKOUT_QUANTITY = quantity;
     const hidden = document.createElement('input'); hidden.type = 'hidden'; hidden.name = 'mode'; hidden.value = mode; form.append(hidden);
     const countrySelect = form.querySelector('[name="countryCode"]');
+    const phoneInput = form.querySelector('#checkout-phone, [name="phone"]');
     const ghanaGroup = form.querySelector('[data-ghana-region-group]');
     const internationalGroup = form.querySelector('[data-international-region-group]');
     const ghanaRegion = form.querySelector('[name="ghanaRegion"]');
@@ -562,10 +563,56 @@
     const postalCode = form.querySelector('[name="postalCode"]');
     const postalHelp = form.querySelector('[data-postal-help]');
     const countryNameInput = form.querySelector('[name="country"]');
+    const alert = form.querySelector('[data-checkout-alert]');
+
+    // Source the country list from intl-tel-input instead of maintaining a local country array.
+    const countryData = typeof window.intlTelInput?.getAllCountries === 'function'
+      ? window.intlTelInput.getAllCountries()
+      : [];
+    const countryFlagEmoji = iso2 => {
+      const code = String(iso2 || '').toUpperCase();
+      if (!/^[A-Z]{2}$/.test(code)) return '🌐';
+      return Array.from(code, char => String.fromCodePoint(char.charCodeAt(0) + 127397)).join('');
+    };
+    if (countrySelect) {
+      countrySelect.replaceChildren();
+      countryData
+        .slice()
+        .sort((a, b) => String(a.name).localeCompare(String(b.name), undefined, { sensitivity: 'base' }))
+        .forEach(country => {
+          const option = document.createElement('option');
+          option.value = String(country.iso2 || '').toUpperCase();
+          option.dataset.countryName = country.name;
+          option.textContent = `${countryFlagEmoji(country.iso2)} ${country.name}`;
+          countrySelect.append(option);
+        });
+      if (!countryData.length) {
+        const option = document.createElement('option');
+        option.value = '';
+        option.textContent = 'Country list unavailable. Refresh the page.';
+        countrySelect.append(option);
+        countrySelect.disabled = true;
+      } else {
+        countrySelect.value = countryData.some(country => String(country.iso2).toLowerCase() === 'gh') ? 'GH' : String(countryData[0].iso2).toUpperCase();
+      }
+    }
+
+    let phoneIti = null;
+    if (phoneInput && typeof window.intlTelInput === 'function') {
+      phoneIti = window.intlTelInput(phoneInput, {
+        initialCountry: 'gh',
+        separateDialCode: true,
+        countrySelectorMode: 'AUTO',
+        countrySearch: true,
+        countryOrder: ['gh'],
+        loadUtils: () => import('https://cdn.jsdelivr.net/npm/intl-tel-input@29.5.5/dist/js/utils.js')
+      });
+    }
+
     function syncDeliveryFields() {
       const selected = countrySelect?.selectedOptions?.[0];
       const isGhana = (countrySelect?.value || 'GH').toUpperCase() === 'GH';
-      if (countryNameInput) countryNameInput.value = selected?.dataset.countryName || selected?.textContent || 'Ghana';
+      if (countryNameInput) countryNameInput.value = selected?.dataset.countryName || selected?.textContent?.replace(/^\S+\s*/, '') || '';
       if (ghanaGroup) ghanaGroup.hidden = !isGhana;
       if (internationalGroup) internationalGroup.hidden = isGhana;
       if (ghanaRegion) ghanaRegion.required = isGhana;
@@ -575,27 +622,59 @@
       if (isGhana && internationalRegion) internationalRegion.value = '';
       if (!isGhana && ghanaRegion) ghanaRegion.value = '';
     }
-    countrySelect?.addEventListener('change', syncDeliveryFields);
+
+    countrySelect?.addEventListener('change', () => {
+      const iso2 = String(countrySelect.value || '').toLowerCase();
+      if (iso2 && phoneIti) phoneIti.setSelectedCountry(iso2);
+      syncDeliveryFields();
+    });
+    if (phoneInput && phoneIti) {
+      phoneInput.addEventListener('countrychange', event => {
+        const country = event.detail || phoneIti.getSelectedCountry();
+        if (country?.iso2 && countrySelect) countrySelect.value = country.iso2.toUpperCase();
+        syncDeliveryFields();
+      });
+      // Keep the country selector and telephone flag aligned even if a number is autofilled.
+      const selectedPhoneCountry = phoneIti.getSelectedCountry();
+      if (selectedPhoneCountry?.iso2 && countrySelect) countrySelect.value = selectedPhoneCountry.iso2.toUpperCase();
+    }
     syncDeliveryFields();
     const scheduleEl = document.querySelector('[data-delivery-schedule]');
     if (scheduleEl) scheduleEl.textContent = 'Delivery timing and fee will be confirmed by the team after checkout.';
     updateCheckoutSummary();
     form.addEventListener('submit', async event => {
       event.preventDefault();
-      const alert = form.querySelector('[data-checkout-alert]'); alert.hidden = true; alert.classList.remove('is-success');
+      if (alert) { alert.hidden = true; alert.classList.remove('is-success'); }
       if (!form.reportValidity()) return;
-      const values = Object.fromEntries(new FormData(form).entries());
-      values.mode = mode; values.quantity = quantity;
-      values.region = values.countryCode === 'GH' ? values.ghanaRegion : values.internationalRegion;
-      delete values.ghanaRegion; delete values.internationalRegion;
       const button = form.querySelector('button[type="submit"]');
       try {
+        if (phoneIti) {
+          await phoneIti.promise;
+          if (!phoneIti.isValidNumber()) {
+            if (alert) {
+              alert.textContent = 'Enter a valid phone number for the selected country, including the correct country code.';
+              alert.hidden = false;
+            }
+            phoneInput?.focus();
+            return;
+          }
+        }
+        const values = Object.fromEntries(new FormData(form).entries());
+        values.mode = mode; values.quantity = quantity;
+        values.countryCode = countrySelect?.value || values.countryCode;
+        values.country = countryNameInput?.value || values.country;
+        if (phoneIti) values.phone = phoneIti.getNumber();
+        values.region = values.countryCode === 'GH' ? values.ghanaRegion : values.internationalRegion;
+        delete values.ghanaRegion; delete values.internationalRegion;
         const result = await withButtonLoading(button, () => api('create-checkout', { method: 'POST', body: values }), 'Connecting to Paystack');
         if (!result.authorizationUrl || !/^https:\/\/(checkout\.)?paystack\.com\//.test(result.authorizationUrl)) throw new Error('Paystack did not return a valid checkout link. Please try again.');
         window.location.href = result.authorizationUrl;
       } catch (error) {
-        alert.textContent = error.message; alert.hidden = false;
-        button.focus({ preventScroll: true });
+        if (alert) {
+          alert.textContent = error.message || 'We could not prepare the phone number. Refresh the page and try again.';
+          alert.hidden = false;
+        }
+        button?.focus({ preventScroll: true });
       }
     });
   }

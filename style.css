@@ -1224,3 +1224,16 @@ h3 { font-size: clamp(24px, 2.4vw, 30px); line-height: 1.1; }
   .header-brand-copy .brand-name { font-size: 9px; }
   .header-brand-copy .brand-by { font-size: 9px; }
 }
+
+/* Checkout international country and phone controls */
+.checkout-form-panel .iti { display: block; width: 100%; }
+.checkout-form-panel .iti input[type="tel"] { width: 100%; min-height: 49px; padding-top: 13px; padding-bottom: 13px; border: 1px solid rgba(51,33,42,.2); border-radius: 1px; background: #fffdf9; color: var(--ink); font-family: var(--sans); font-size: 13px; box-shadow: none; }
+.checkout-form-panel .iti input[type="tel"]:focus { border-color: var(--clay); box-shadow: 0 0 0 3px rgba(185,129,103,.12); outline: none; }
+.checkout-form-panel .iti__selected-country { border: 0; border-radius: 1px; background: transparent; }
+.checkout-form-panel .iti__selected-country-primary { padding-inline: 12px; }
+.checkout-form-panel .iti__selected-dial-code { color: var(--ink); font-size: 13px; font-weight: 600; }
+.checkout-form-panel .iti__dropdown-content { z-index: 90; border: 1px solid var(--line); border-radius: 3px; box-shadow: 0 16px 40px rgba(51,33,42,.16); }
+.checkout-form-panel .iti__country-list { max-height: min(300px, 42vh); color: var(--ink); font-size: 13px; }
+.checkout-form-panel .iti__country.iti__highlight { background: #f2e8de; }
+.checkout-form-panel .iti__search-input { min-height: 43px; padding: 10px 12px; border: 1px solid var(--line); color: var(--ink); font: inherit; }
+.checkout-form-panel #checkout-country { font-size: 14px; }

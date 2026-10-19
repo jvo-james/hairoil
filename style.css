@@ -1267,3 +1267,26 @@ h3 { font-size: clamp(24px, 2.4vw, 30px); line-height: 1.1; }
   .checkout-form-panel .iti input[type="tel"] { font-size: 12px; }
   .checkout-form-panel .iti input[type="tel"]::placeholder { font-size: 10px; }
 }
+
+/* Mobile checkout: stack every delivery field on its own line. */
+@media (max-width: 760px) {
+  .checkout-form-panel .form-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .checkout-form-panel .form-grid > .field {
+    grid-column: 1 / -1;
+    width: 100%;
+    min-width: 0;
+  }
+
+  .checkout-form-panel .form-grid .iti,
+  .checkout-form-panel .form-grid .checkout-country-picker,
+  .checkout-form-panel .form-grid input,
+  .checkout-form-panel .form-grid select,
+  .checkout-form-panel .form-grid textarea {
+    width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+  }
+}

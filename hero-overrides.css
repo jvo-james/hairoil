@@ -89,9 +89,43 @@
   .hero-home .hero-inner { padding-left: 15px; padding-right: 96px; padding-bottom: calc(25px + env(safe-area-inset-bottom)); }
   .hero-home .hero-inner h1 { font-size: 34px; }
   .hero-home .hero-actions { width: calc(100vw - 125px); gap: 5px; }
-  .hero-home .hero-actions .button { padding-inline: 5px; font-size: 6.5px; }
+  .hero-home .hero-actions .button { padding-inline: 5px; font-size: 8.5px; }
   .hero-product-feature { right: 9px; width: 78px; }
 }
 @media (prefers-reduced-motion: reduce) {
   .hero-product-feature, .hero-wholesale-cta { transition: none !important; }
+}
+
+/* Give the desktop hero a generous editorial gutter without changing its composition. */
+@media (min-width: 761px) {
+  .hero-home .hero-inner.page-shell {
+    width: min(1440px, calc(100% - clamp(64px, 10vw, 176px))) !important;
+    max-width: 1440px;
+    margin-inline: auto;
+    padding-inline: 0;
+  }
+  .hero-home .hero-inner h1 { max-width: 690px; }
+  .hero-product-feature { right: clamp(36px, 6.2vw, 100px); }
+}
+
+@media (max-width: 760px) {
+  .hero-home .hero-inner { padding-left: 22px; padding-right: 112px; }
+  .hero-home .hero-inner .eyebrow { font-size: 9px !important; }
+  .hero-home .hero-copy { font-size: 12px; }
+  .hero-home .hero-actions .button { font-size: 10px; }
+  .hero-product-feature { width: 88px; }
+  .hero-product-feature img { height: 108px; }
+  .hero-product-caption { padding-inline: 5px; }
+  .hero-product-caption small { font-size: 7px; }
+  .hero-product-caption strong { font-size: 12px; }
+}
+@media (max-width: 380px) {
+  .hero-home .hero-inner { padding-left: 15px; padding-right: 101px; }
+  .hero-product-feature { right: 8px; width: 82px; }
+}
+@media (max-width: 380px) {
+  .hero-home .hero-copy { font-size: 11px; }
+  .hero-home .hero-actions .button { font-size: 8.5px; }
+  .hero-product-caption small { font-size: 7px; }
+  .hero-product-caption strong { font-size: 11px; }
 }

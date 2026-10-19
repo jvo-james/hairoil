@@ -83,8 +83,9 @@
   function headerMarkup() {
     const homeClass = document.body.dataset.page === 'home' ? ' site-header-home' : '';
     return `<header class="site-header${homeClass}"><div class="header-inner">
-      <div class="header-side"><button class="menu-trigger" type="button" data-open-menu aria-label="Open navigation menu" aria-expanded="false"><span class="menu-bars" aria-hidden="true"><span></span><span></span></span><span class="menu-label">Menu</span></button></div>
+      <div class="header-side header-side-left"><button class="menu-trigger" type="button" data-open-menu aria-label="Open navigation menu" aria-expanded="false"><span class="menu-bars" aria-hidden="true"><span></span><span></span></span><span class="menu-label">Menu</span></button></div>
       <a class="brand-lockup header-brand-lockup" href="index.html" aria-label="Hair Confidante by MB home"><img class="header-logo-img" src="${escapeHTML(IMAGES.logoMark || IMAGES.logo || 'images/logo.jpg')}" alt="" width="42" height="42"><span class="header-brand-copy"><span class="brand-name">HAIR CONFIDANTE</span><span class="brand-by">by MB</span></span></a>
+      <nav class="header-desktop-nav" aria-label="Main navigation"><a href="index.html" data-header-link="home">Home</a><a href="product.html" data-header-link="product">Hair oil</a><a href="wholesale.html" data-header-link="wholesale">Wholesale</a></nav>
       <div class="header-side header-side-right"><button class="track-trigger" type="button" data-open-track aria-label="Track order" title="Track order"><i class="fa-solid fa-box" aria-hidden="true"></i></button></div>
     </div></header>`;
   }
@@ -94,7 +95,7 @@
       <div class="footer-top"><div class="footer-brand"><a class="brand-lockup" href="index.html" aria-label="Hair Confidante by MB home" style="align-items:flex-start;text-align:left"><span class="brand-name">HAIR CONFIDANTE</span><span class="brand-by">by MB</span></a><p>Hair and scalp oil for everyday use, available in retail and wholesale quantities.</p><div class="footer-socials"><a href="https://www.instagram.com/_michellebediako/" target="_blank" rel="noopener noreferrer" aria-label="Instagram"><i class="fa-brands fa-instagram"></i></a><a href="https://www.tiktok.com/@_michellebediako" target="_blank" rel="noopener noreferrer" aria-label="TikTok"><i class="fa-brands fa-tiktok"></i></a><a href="https://www.snapchat.com/add/i.michyy" target="_blank" rel="noopener noreferrer" aria-label="Snapchat"><i class="fa-brands fa-snapchat"></i></a><a href="https://www.youtube.com/@michellebediakoo" target="_blank" rel="noopener noreferrer" aria-label="YouTube"><i class="fa-brands fa-youtube"></i></a></div></div>
       <div class="footer-newsletter"><p class="eyebrow">NEWS & PRODUCT UPDATES</p><h3>Product updates.</h3><p>Receive product news, availability updates and brand announcements.</p><form class="newsletter-form" data-newsletter-form novalidate><input type="email" name="email" placeholder="Your email address" aria-label="Your email address" maxlength="160" required><input class="honeypot" type="text" name="website" tabindex="-1" autocomplete="off" aria-hidden="true"><button type="submit">Sign me up <i class="fa-solid fa-arrow-right"></i></button></form></div></div>
       <nav class="footer-links" aria-label="Footer navigation"><a href="product.html">Shop Hair Oil</a><a href="wholesale.html">Wholesale</a><a href="index.html#how-to-use">How to use</a><a href="index.html#instagram">Instagram</a><a href="tel:0593231032">059 323 1032</a><button type="button" class="footer-contact-link" data-open-contact>Contact</button></nav>
-      <div class="footer-bottom"><span>© <span data-current-year>${new Date().getFullYear()}</span> Hair Confidante by MB. Made with care.</span><span class="footer-credit">Website by <a href="https://www.snapchat.com/add/jvo_james" target="_blank" rel="noopener noreferrer">jvo_james</a></span><span class="footer-socials"><a href="https://www.snapchat.com/add/jvo_james" target="_blank" rel="noopener noreferrer" aria-label="Website creator on Snapchat"><i class="fa-brands fa-snapchat"></i></a></span></div>
+      <div class="footer-bottom"><span>© <span data-current-year>${new Date().getFullYear()}</span> Hair Confidante by MB. Made with care.</span><span class="footer-credit"><span class="footer-credit-label">WEBSITE BY</span><a href="https://www.snapchat.com/add/jvo_james" target="_blank" rel="noopener noreferrer"><i class="fa-solid fa-code" aria-hidden="true"></i> jvo_james <i class="fa-solid fa-arrow-up-right-from-square footer-credit-arrow" aria-hidden="true"></i></a></span><span class="footer-socials"><a href="https://www.snapchat.com/add/jvo_james" target="_blank" rel="noopener noreferrer" aria-label="Website creator on Snapchat"><i class="fa-brands fa-snapchat"></i></a></span></div>
     </div></footer>`;
   }
 
@@ -295,7 +296,11 @@
     const timeline = order.status === 'cancelled'
       ? `<div class="track-timeline-item is-complete"><i class="fa-solid fa-circle-xmark"></i><div><strong>Cancelled</strong><br><span>Your order has been cancelled.</span></div></div>`
       : statuses.map((status, index) => `<div class="track-timeline-item ${currentIndex >= index ? 'is-complete' : ''}"><i class="${currentIndex >= index ? 'fa-solid fa-circle-check' : 'fa-regular fa-circle'}"></i><div><strong>${labels[status]}</strong>${findStatusDate(order.history, status) ? `<br><span>${formatDate(findStatusDate(order.history, status))}</span>` : ''}</div></div>`).join('');
-    results.innerHTML = `<div class="track-results-top"><div><span style="display:block;color:var(--ink-faint);font-size:9px;letter-spacing:.12em">ORDER NUMBER</span><strong>${escapeHTML(order.orderNumber)}</strong></div><span class="status-pill">${escapeHTML(labels[order.status] || order.status)}</span></div><div class="track-summary-lines"><div><span>Product</span><strong>${escapeHTML(order.productName)}</strong></div><div><span>Quantity</span><strong>${Number(order.quantity)} bottle${Number(order.quantity) === 1 ? '' : 's'}</strong></div><div><span>Total paid</span><strong>${money(order.total)}</strong></div><div><span>Order placed</span><strong>${formatDate(order.createdAt)}</strong></div></div><div class="track-timeline">${timeline}</div><button type="button" class="track-back" data-track-back><i class="fa-solid fa-arrow-left"></i> Track another order</button>`;
+    const paidAmount = order.amountPaid ?? order.chargeTotal ?? (Number(order.total || 0) + Number(order.processingFee || 0));
+    const deliveryDate = order.status === 'delivered' ? (order.deliveredAt || findStatusDate(order.history, 'delivered')) : order.expectedDeliveryDate;
+    const deliveryLabel = order.status === 'delivered' ? 'Delivered on' : order.status === 'cancelled' ? 'Delivery' : 'Expected delivery';
+    const deliveryValue = order.status === 'cancelled' ? 'Order cancelled' : deliveryDate ? formatDate(deliveryDate) : 'To be confirmed';
+    results.innerHTML = `<div class="track-results-top"><div><span style="display:block;color:var(--ink-faint);font-size:10px;letter-spacing:.12em">ORDER NUMBER</span><strong>${escapeHTML(order.orderNumber)}</strong></div><span class="status-pill">${escapeHTML(labels[order.status] || order.status)}</span></div><div class="track-summary-lines"><div><span>Product</span><strong>${escapeHTML(order.productName)}</strong></div><div><span>Quantity</span><strong>${Number(order.quantity)} bottle${Number(order.quantity) === 1 ? '' : 's'}</strong></div><div><span>Product subtotal</span><strong>${money(order.total)}</strong></div>${Number(order.processingFee || 0) > 0 ? `<div><span>Processing fee</span><strong>${money(order.processingFee)}</strong></div>` : ''}<div><span>Total paid</span><strong>${money(paidAmount)}</strong></div><div><span>Order placed</span><strong>${formatDate(order.createdAt)}</strong></div><div class="track-delivery-date"><span>${deliveryLabel}</span><strong>${deliveryValue}</strong></div></div><div class="track-timeline">${timeline}</div><button type="button" class="track-back" data-track-back><i class="fa-solid fa-arrow-left"></i> Track another order</button>`;
     results.querySelector('[data-track-back]')?.addEventListener('click', () => {
       form.hidden = false; results.hidden = true; results.innerHTML = ''; form.reset(); trackLastResult = null; form.querySelector('input[name="orderNumber"]')?.focus();
     });
@@ -603,14 +608,17 @@
     const min = mode === 'wholesale' ? Math.max(1, Number(settings.wholesaleMinQty) || 10) : 1;
     if (!Number.isInteger(quantity) || quantity < min || quantity > 1000) quantity = min;
     const unit = Number(mode === 'wholesale' ? settings.wholesalePrice : settings.retailPrice);
-    const total = quantity * unit;
+    const total = Math.round(quantity * unit * 100) / 100;
+    const processingFee = Math.round(total * 0.0295 * 100) / 100;
+    const amountDue = Math.round((total + processingFee) * 100) / 100;
     const modeLabel = document.querySelector('[data-checkout-mode-label]');
     if (modeLabel) modeLabel.textContent = mode === 'wholesale' ? 'WHOLESALE' : 'RETAIL';
     document.querySelector('[data-checkout-product-name]')?.replaceChildren(document.createTextNode(settings.productName || SETTINGS_DEFAULTS.productName));
     document.querySelector('[data-checkout-unit-info]')?.replaceChildren(document.createTextNode(`${settings.bottleSize || '100 mL'} · ${mode === 'wholesale' ? 'Unlabelled wholesale' : 'Retail bottle'}`));
     document.querySelector('[data-checkout-quantity]')?.replaceChildren(document.createTextNode(`Qty ${quantity}`));
     document.querySelector('[data-checkout-subtotal]')?.replaceChildren(document.createTextNode(money(total)));
-    totalEl.textContent = money(total);
+    document.querySelector('[data-checkout-fee]')?.replaceChildren(document.createTextNode(money(processingFee)));
+    totalEl.textContent = money(amountDue);
     const back = document.querySelector('[data-back-to-product]');
     if (back) back.href = mode === 'wholesale' ? 'wholesale.html' : 'product.html';
     document.querySelector('.checkout-heading h1')?.replaceChildren(...(mode === 'wholesale' ? [document.createTextNode('Wholesale '), Object.assign(document.createElement('em'), { textContent: 'checkout.' })] : [document.createTextNode('Delivery & '), Object.assign(document.createElement('em'), { textContent: 'payment.' })]));
@@ -653,9 +661,10 @@
               <div class="receipt-meta"><div><small>ORDER NUMBER</small><strong>${escapeHTML(order.orderNumber || data.orderNumber)}</strong></div><div><small>DATE PAID</small><strong>${escapeHTML(dateText(order.paidAt || order.createdAt))}</strong></div></div>
               <div class="receipt-customer"><div><small>BILLED TO</small><strong>${escapeHTML(order.name || '')}</strong><span>${escapeHTML(order.email || '')}</span><span>${escapeHTML(order.phone || '')}</span></div><div><small>DELIVERY ADDRESS</small><span>${deliveryAddress || 'Provided at checkout'}</span></div></div>
               <div class="receipt-line receipt-items"><span><strong>${escapeHTML(order.productName || 'Hair Confidante Hair Oil')}</strong><small>${escapeHTML(order.mode || 'retail')} · ${Number(order.quantity || 1)} bottle${Number(order.quantity) === 1 ? '' : 's'} × ${moneyText(order.unitPrice)}</small></span><strong>${moneyText(Number(order.quantity || 1) * Number(order.unitPrice || 0))}</strong></div>
-              <div class="receipt-line"><span>Product subtotal paid</span><strong>${moneyText(order.total)}</strong></div>
+              <div class="receipt-line"><span>Product subtotal</span><strong>${moneyText(order.total)}</strong></div>
+              <div class="receipt-line"><span>Processing fee</span><strong>${moneyText(order.processingFee || 0)}</strong></div>
               <div class="receipt-line"><span>Delivery fee</span><strong>Not included</strong></div>
-              <div class="receipt-total"><span>TOTAL PAID</span><strong>${moneyText(order.total)}</strong></div>
+              <div class="receipt-total"><span>TOTAL PAID</span><strong>${moneyText(order.amountPaid ?? order.chargeTotal ?? (Number(order.total || 0) + Number(order.processingFee || 0)))}</strong></div>
               <p class="receipt-delivery-note">Delivery is arranged separately. We will contact you with the estimated delivery fee and delivery details.</p>
               <div class="receipt-footerline"><span>Payment method: ${escapeHTML(order.paymentChannel || 'Paystack')}</span><span>Currency: GHS</span></div>
             </section>

@@ -1,6 +1,6 @@
 import { response, parseBody, cleanString, normaliseEmail, isEmail, toISO } from './_shared/http.js';
 import { getFirebase, requireAdmin } from './_shared/firebase.js';
-import { getSettings, DEFAULT_SETTINGS, validPrice, validWholeQuantity, normaliseUrl, estimateDeliveryDate } from './_shared/store.js';
+import { getSettings, DEFAULT_SETTINGS, validPrice, validWholeQuantity, normaliseUrl } from './_shared/store.js';
 import { sendBrandedEmail } from './_shared/email.js';
 
 const VALID_STATUSES = new Set(['preparing', 'ready', 'dispatched', 'delivered', 'cancelled']);
@@ -71,30 +71,12 @@ export const handler = async event => {
     }
 
     if (action === 'update-delivery-settings') {
-      const dispatchDays = [...new Set((Array.isArray(body.dispatchDays) ? body.dispatchDays : []).map(Number).filter(day => Number.isInteger(day) && day >= 0 && day <= 6))].sort((a,b) => a-b);
+      const daysRaw = Array.isArray(body.dispatchDays) ? body.dispatchDays : [];
+      const dispatchDays = [...new Set(daysRaw.map(Number).filter(day => Number.isInteger(day) && day >= 0 && day <= 6))].sort((a, b) => a - b);
       const estimatedDeliveryDays = validWholeQuantity(body.estimatedDeliveryDays, 1, 21);
       if (!dispatchDays.length || !estimatedDeliveryDays) return response(400, { error: 'Select at least one delivery day and an estimate from 1 to 21 days.' });
       await db.collection('settings').doc('store').set({ dispatchDays, estimatedDeliveryDays, updatedAt: FieldValue.serverTimestamp(), updatedBy: adminUser.email }, { merge: true });
       return response(200, { ok: true, message: 'Delivery settings saved.' });
-    }
-
-    if (action === 'update-order-details') {
-      const orderNumber = cleanString(body.orderNumber, 30).toUpperCase();
-      if (!/^HC-\d{5,8}$/.test(orderNumber)) return response(400, { error: 'Choose a valid order.' });
-      const updates = {
-        name: cleanString(body.name, 90), email: normaliseEmail(body.email), phone: cleanString(body.phone, 25),
-        country: cleanString(body.country, 100), countryCode: cleanString(body.countryCode, 2).toUpperCase(),
-        region: cleanString(body.region, 100), city: cleanString(body.city, 100), postalCode: cleanString(body.postalCode, 30),
-        address: cleanString(body.address, 500), note: cleanString(body.note, 500)
-      };
-      if (updates.name.length < 2 || !isEmail(updates.email) || updates.phone.length < 7 || updates.address.length < 5 || (updates.countryCode && !/^[A-Z]{2}$/.test(updates.countryCode))) return response(400, { error: 'Please check the customer and delivery details.' });
-      const requestedDate = cleanString(body.expectedDeliveryDate, 10);
-      if (requestedDate && (!/^\d{4}-\d{2}-\d{2}$/.test(requestedDate) || Number.isNaN(Date.parse(`${requestedDate}T12:00:00Z`)))) return response(400, { error: 'Expected delivery date must be a valid date.' });
-      if (Object.prototype.hasOwnProperty.call(body, 'expectedDeliveryDate')) updates.expectedDeliveryDate = requestedDate || null;
-      const orderRef = db.collection('orders').doc(orderNumber);
-      await orderRef.update({ ...updates, updatedAt: FieldValue.serverTimestamp(), detailsUpdatedBy: adminUser.email });
-      const snap = await orderRef.get();
-      return response(200, { ok: true, message: 'Order details saved.', order: serialise({ ...snap.data(), orderNumber }) });
     }
 
     if (action === 'update-order-status') {
@@ -112,11 +94,8 @@ export const handler = async event => {
         if (current.status === status) { resultOrder = current; return; }
         const now = new Date().toISOString();
         const history = [...(Array.isArray(current.history) ? current.history : []), { status, at: now, by: adminUser.email }];
-        const settingsSnap = await tx.get(db.collection('settings').doc('store'));
-        const storeSettings = settingsSnap.exists ? settingsSnap.data() : DEFAULT_SETTINGS;
-        const deliveryFields = status === 'delivered' ? { deliveredAt: now } : status === 'cancelled' ? { cancelledAt: now } : (!current.expectedDeliveryDate ? { expectedDeliveryDate: estimateDeliveryDate(storeSettings) } : {});
-        tx.update(orderRef, { status, ...deliveryFields, updatedAt: FieldValue.serverTimestamp(), history, statusUpdatedBy: adminUser.email });
-        resultOrder = { ...current, status, ...deliveryFields, history, orderNumber };
+        tx.update(orderRef, { status, updatedAt: FieldValue.serverTimestamp(), history, statusUpdatedBy: adminUser.email });
+        resultOrder = { ...current, status, history, orderNumber };
         changed = true;
       });
       if (changed) {

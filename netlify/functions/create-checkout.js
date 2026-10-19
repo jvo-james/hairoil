@@ -5,6 +5,15 @@ import { DEFAULT_SETTINGS, validWholeQuantity } from './_shared/store.js';
 import { paystackRequest } from './_shared/payments.js';
 import { consumeRateLimit } from './_shared/rate-limit.js';
 
+function expectedDeliveryDate(from, estimatedDays, dispatchDays) {
+  const date = new Date(from);
+  date.setUTCHours(12, 0, 0, 0);
+  date.setUTCDate(date.getUTCDate() + Math.max(1, Math.floor(Number(estimatedDays) || 3)));
+  const days = new Set((Array.isArray(dispatchDays) ? dispatchDays : [1, 2, 3, 4, 5, 6]).map(Number));
+  for (let i = 0; i < 7 && days.size && !days.has(date.getUTCDay()); i++) date.setUTCDate(date.getUTCDate() + 1);
+  return date.toISOString();
+}
+
 export const handler = async event => {
   if (event.httpMethod !== 'POST') return response(405, { error: 'Method not allowed.' });
   try {
@@ -45,16 +54,19 @@ export const handler = async event => {
       const stockBefore = tracksInventory ? Number(settings.inventory) : null;
       if (tracksInventory && stockBefore < quantity) throw new Error('There is not enough stock available for this quantity. Please reduce the quantity or contact the store.');
       const total = Math.round(price * quantity * 100) / 100;
-      const amountSubunits = Math.round(total * 100);
+      const processingFee = Math.round(total * 0.0295 * 100) / 100;
+      const chargeTotal = Math.round((total + processingFee) * 100) / 100;
+      const amountSubunits = Math.round(chargeTotal * 100);
       const orderSeq = Number(counterSnap.exists ? counterSnap.data().lastNumber || 0 : 0) + 1;
       const orderNumber = `HC-${String(orderSeq).padStart(5, '0')}`;
       const orderRef = db.collection('orders').doc(orderNumber);
       const order = {
         orderNumber, orderSeq, name, email, phone, address, city, country, countryCode, region, postalCode, note,
         mode, productName: settings.productName || 'Hair Confidante Hair Oil',
-        quantity, unitPrice: price, total, amountSubunits, currency: 'GHS',
+        quantity, unitPrice: price, total, processingFee, chargeTotal, amountSubunits, currency: 'GHS',
         status: 'awaiting_payment', paymentStatus: 'pending', paymentReference: reference,
-        deliveryFee: null, inventoryReserved: tracksInventory, inventoryReservationReleased: false,
+        deliveryFee: null, expectedDeliveryDate: expectedDeliveryDate(new Date(), settings.estimatedDeliveryDays, settings.dispatchDays), deliveredAt: null,
+        inventoryReserved: tracksInventory, inventoryReservationReleased: false,
         inventoryReservationExpiresAt: tracksInventory ? new Date(Date.now() + 45 * 60 * 1000) : null,
         createdAt: FieldValue.serverTimestamp(), updatedAt: FieldValue.serverTimestamp(),
         history: [{ status: 'awaiting_payment', at: new Date().toISOString() }]
@@ -62,7 +74,7 @@ export const handler = async event => {
       tx.set(counterRef, { lastNumber: orderSeq, updatedAt: FieldValue.serverTimestamp() }, { merge: true });
       if (tracksInventory) tx.set(settingsRef, { inventory: stockBefore - quantity, updatedAt: FieldValue.serverTimestamp() }, { merge: true });
       tx.create(orderRef, order);
-      return { orderNumber, order, orderRefId: orderRef.id, amountSubunits, quantity, price };
+      return { orderNumber, order, orderRefId: orderRef.id, amountSubunits, quantity, price, total, processingFee, chargeTotal };
     });
     const callbackUrl = `${origin}/confirmation.html?reference=${encodeURIComponent(reference)}`;
     let paystack;

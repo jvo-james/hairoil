@@ -4,6 +4,7 @@ import { getSettings, DEFAULT_SETTINGS, validPrice, validWholeQuantity, normalis
 import { sendBrandedEmail } from './_shared/email.js';
 
 const VALID_STATUSES = new Set(['preparing', 'ready', 'dispatched', 'delivered', 'cancelled']);
+const roundMoney = value => Math.round(Number(value || 0) * 100) / 100;
 
 function serialise(value) {
   if (value == null) return value;
@@ -31,12 +32,16 @@ export const handler = async event => {
     if (action === 'dashboard') {
       const [orders, reviews, messages, subscribers, emailCampaigns] = await Promise.all([docs('orders', 200), docs('reviews', 200), docs('messages', 200), docs('subscribers', 500), docs('emailCampaigns', 100)]);
       const settings = await getSettings(db);
+      if (!settings.adminUid && adminUser.uid) {
+        await db.collection('settings').doc('store').set({ adminUid: adminUser.uid, adminUidLinkedAt: FieldValue.serverTimestamp() }, { merge: true });
+        settings.adminUid = adminUser.uid;
+      }
       const paidOrders = orders.filter(order => order.paymentStatus === 'success');
       const revenue = paidOrders.reduce((sum, order) => sum + Number(order.total || 0), 0);
       return response(200, {
         ok: true,
         admin: { email: adminUser.email },
-        settings: { ...DEFAULT_SETTINGS, ...serialise(settings) },
+        settings: Object.fromEntries(Object.entries({ ...DEFAULT_SETTINGS, ...serialise(settings) }).filter(([key]) => !['adminUid', 'adminUidLinkedAt'].includes(key))),
         metrics: {
           orders: orders.length,
           paidOrders: paidOrders.length,
@@ -94,8 +99,9 @@ export const handler = async event => {
         if (current.status === status) { resultOrder = current; return; }
         const now = new Date().toISOString();
         const history = [...(Array.isArray(current.history) ? current.history : []), { status, at: now, by: adminUser.email }];
-        tx.update(orderRef, { status, updatedAt: FieldValue.serverTimestamp(), history, statusUpdatedBy: adminUser.email });
-        resultOrder = { ...current, status, history, orderNumber };
+        const deliveredAt = status === 'delivered' ? now : null;
+        tx.update(orderRef, { status, deliveredAt, updatedAt: FieldValue.serverTimestamp(), history, statusUpdatedBy: adminUser.email });
+        resultOrder = { ...current, status, deliveredAt, history, orderNumber };
         changed = true;
       });
       if (changed) {
@@ -103,6 +109,53 @@ export const handler = async event => {
         await sendBrandedEmail({ to: order.email, type: `order_${status}`, data: { name: order.name, order } });
       }
       return response(200, { ok: true, message: changed ? `Order marked ${status}. A customer update email was queued.` : 'This order already has that status.', order: serialise(resultOrder) });
+    }
+
+    if (action === 'update-order-details') {
+      const orderNumber = cleanString(body.orderNumber, 30).toUpperCase();
+      if (!/^HC-\d{5,8}$/.test(orderNumber)) return response(400, { error: 'Choose a valid order.' });
+      const name = cleanString(body.name, 90);
+      const email = normaliseEmail(body.email);
+      const phone = cleanString(body.phone, 25);
+      const address = cleanString(body.address, 500);
+      const city = cleanString(body.city, 100);
+      const region = cleanString(body.region, 100);
+      const country = cleanString(body.country, 100);
+      const countryCode = cleanString(body.countryCode, 2).toUpperCase();
+      const postalCode = cleanString(body.postalCode, 30);
+      const note = cleanString(body.note, 500);
+      const productName = cleanString(body.productName, 100);
+      const mode = body.mode === 'wholesale' ? 'wholesale' : body.mode === 'retail' ? 'retail' : '';
+      const quantity = validWholeQuantity(body.quantity, 1, 1000);
+      const unitPrice = validPrice(body.unitPrice);
+      let expectedDeliveryDate = null;
+      if (body.expectedDeliveryDate) {
+        const parsedDate = new Date(`${cleanString(body.expectedDeliveryDate, 20)}T12:00:00Z`);
+        if (Number.isNaN(parsedDate.getTime())) return response(400, { error: 'Enter a valid expected delivery date.' });
+        expectedDeliveryDate = parsedDate.toISOString();
+      }
+      if (!name || name.length < 2 || !isEmail(email) || phone.length < 7 || address.length < 5 || !city || !region || !country || !/^[A-Z]{2}$/.test(countryCode) || (countryCode !== 'GH' && !postalCode) || !productName || !mode || !quantity || !unitPrice) {
+        return response(400, { error: 'Please check the customer details, delivery address and purchased item fields.' });
+      }
+      const orderRef = db.collection('orders').doc(orderNumber);
+      let updatedOrder;
+      await db.runTransaction(async tx => {
+        const snap = await tx.get(orderRef);
+        if (!snap.exists) throw Object.assign(new Error('Order not found.'), { statusCode: 404 });
+        const current = snap.data();
+        const total = roundMoney(quantity * unitPrice);
+        const processingFee = roundMoney(total * 0.0295);
+        const chargeTotal = roundMoney(total + processingFee);
+        const amountPaid = Number(current.amountPaid ?? current.chargeTotal ?? (Number(current.total || 0) + Number(current.processingFee || 0)));
+        const changes = {
+          name, email, phone, address, city, region, country, countryCode, postalCode, note,
+          productName, mode, quantity, unitPrice, total, processingFee, chargeTotal,
+          amountPaid, expectedDeliveryDate, updatedAt: FieldValue.serverTimestamp(), detailsUpdatedBy: adminUser.email
+        };
+        tx.update(orderRef, changes);
+        updatedOrder = { ...current, ...changes, orderNumber };
+      });
+      return response(200, { ok: true, message: 'Order details saved.', order: serialise(updatedOrder) });
     }
 
     if (action === 'review-status') {

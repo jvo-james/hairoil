@@ -3,9 +3,7 @@ import { getFirebase } from './_shared/firebase.js';
 import { findOrderByReference, paystackRequest, completePaidOrder } from './_shared/payments.js';
 import { sendBrandedEmail, notifyAdmin } from './_shared/email.js';
 
-function receiptOrder(order) {
-  return { orderNumber: order.orderNumber, name: order.name, email: order.email, phone: order.phone, address: order.address, city: order.city, country: order.country, countryCode: order.countryCode, region: order.region, postalCode: order.postalCode, note: order.note, mode: order.mode, productName: order.productName, quantity: Number(order.quantity || 1), unitPrice: Number(order.unitPrice || 0), total: Number(order.total || 0), currency: order.currency || 'GHS', paymentReference: order.paymentReference, paymentChannel: order.paymentChannel || 'Paystack', status: order.status || 'preparing', createdAt: toISO(order.createdAt), paidAt: toISO(order.paidAt) };
-}
+function receiptOrder(order) { return { orderNumber: order.orderNumber, name: order.name, email: order.email, phone: order.phone, address: order.address, city: order.city, country: order.country, region: order.region, postalCode: order.postalCode, note: order.note, mode: order.mode, productName: order.productName, quantity: Number(order.quantity || 1), unitPrice: Number(order.unitPrice || 0), total: Number(order.total || 0), processingFee: Number(order.processingFee || 0), amountDue: Number(order.amountDue ?? (Number(order.total || 0) + Number(order.processingFee || 0))), currency: order.currency || 'GHS', paymentReference: order.paymentReference, paymentChannel: order.paymentChannel || 'Paystack', status: order.status || 'preparing', createdAt: toISO(order.createdAt), paidAt: toISO(order.paidAt), expectedDeliveryDate: order.expectedDeliveryDate || null }; }
 
 export const handler = async event => {
   if (event.httpMethod !== 'POST') return response(405, { error: 'Method not allowed.' });

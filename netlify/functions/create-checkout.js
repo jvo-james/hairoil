@@ -24,8 +24,7 @@ export const handler = async event => {
     const postalCode = cleanString(body.postalCode, 30);
     const note = cleanString(body.note, 500);
     const mode = body.mode === 'wholesale' ? 'wholesale' : body.mode === 'retail' ? 'retail' : '';
-    const validCountryCode = /^[A-Z]{2}$/.test(countryCode);
-    if (!name || name.length < 2 || !isEmail(email) || phone.length < 7 || address.length < 5 || !city || !country || !validCountryCode || !region || (countryCode !== 'GH' && !postalCode) || !mode) {
+    if (!name || name.length < 2 || !isEmail(email) || phone.length < 7 || address.length < 5 || !city || !country || !/^[A-Z]{2}$/.test(countryCode) || !region || (countryCode !== 'GH' && !postalCode) || !mode) {
       return response(400, { error: 'Please check your contact and delivery details. International orders require a postal code.' });
     }
     const { db, FieldValue } = getFirebase();
@@ -45,24 +44,26 @@ export const handler = async event => {
       const stockBefore = tracksInventory ? Number(settings.inventory) : null;
       if (tracksInventory && stockBefore < quantity) throw new Error('There is not enough stock available for this quantity. Please reduce the quantity or contact the store.');
       const total = Math.round(price * quantity * 100) / 100;
-      const amountSubunits = Math.round(total * 100);
+      const processingFee = Math.round(total * 0.0295 * 100) / 100;
+      const amountDue = Math.round((total + processingFee) * 100) / 100;
+      const amountSubunits = Math.round(amountDue * 100);
       const orderSeq = Number(counterSnap.exists ? counterSnap.data().lastNumber || 0 : 0) + 1;
       const orderNumber = `HC-${String(orderSeq).padStart(5, '0')}`;
       const orderRef = db.collection('orders').doc(orderNumber);
       const order = {
         orderNumber, orderSeq, name, email, phone, address, city, country, countryCode, region, postalCode, note,
         mode, productName: settings.productName || 'Hair Confidante Hair Oil',
-        quantity, unitPrice: price, total, amountSubunits, currency: 'GHS',
+        quantity, unitPrice: price, total, processingFee, amountDue, amountSubunits, currency: 'GHS',
         status: 'awaiting_payment', paymentStatus: 'pending', paymentReference: reference,
-        deliveryFee: null, inventoryReserved: tracksInventory, inventoryReservationReleased: false,
-        inventoryReservationExpiresAt: tracksInventory ? new Date(Date.now() + 45 * 60 * 1000) : null,
+        inventoryReserved: tracksInventory, inventoryReservationReleased: false,
+        inventoryReservationExpiresAt: tracksInventory ? new Date(Date.now() + 45 * 60 * 1000).toISOString() : null,
         createdAt: FieldValue.serverTimestamp(), updatedAt: FieldValue.serverTimestamp(),
         history: [{ status: 'awaiting_payment', at: new Date().toISOString() }]
       };
       tx.set(counterRef, { lastNumber: orderSeq, updatedAt: FieldValue.serverTimestamp() }, { merge: true });
       if (tracksInventory) tx.set(settingsRef, { inventory: stockBefore - quantity, updatedAt: FieldValue.serverTimestamp() }, { merge: true });
       tx.create(orderRef, order);
-      return { orderNumber, order, orderRefId: orderRef.id, amountSubunits, quantity, price };
+      return { orderNumber, order, orderRefId: orderRef.id, amountSubunits, quantity, price, total, processingFee, amountDue };
     });
     const callbackUrl = `${origin}/confirmation.html?reference=${encodeURIComponent(reference)}`;
     let paystack;
@@ -73,17 +74,15 @@ export const handler = async event => {
         metadata: { order_number: prepared.orderNumber, order_mode: mode, quantity: prepared.quantity, custom_fields: [{ display_name: 'Order Number', variable_name: 'order_number', value: prepared.orderNumber }] }
       });
     } catch (error) {
-      const failedOrderRef = db.collection('orders').doc(prepared.orderNumber);
+      const orderRef = db.collection('orders').doc(prepared.orderNumber);
       await db.runTransaction(async tx => {
-        const [orderSnap, currentSettingsSnap] = await Promise.all([tx.get(failedOrderRef), tx.get(settingsRef)]);
+        const [orderSnap, currentSettingsSnap] = await Promise.all([tx.get(orderRef), tx.get(settingsRef)]);
         if (!orderSnap.exists) return;
-        const currentOrder = orderSnap.data();
-        const patch = { paymentStatus: 'initialization_failed', status: 'awaiting_payment', updatedAt: FieldValue.serverTimestamp(), paymentError: cleanString(error.message, 200), inventoryReserved: false, inventoryReservationReleased: Boolean(currentOrder.inventoryReserved) };
-        if (currentOrder.inventoryReserved && currentSettingsSnap.exists) {
-          const currentSettings = currentSettingsSnap.data();
-          if (Number.isFinite(Number(currentSettings.inventory))) tx.set(settingsRef, { inventory: Number(currentSettings.inventory) + Number(currentOrder.quantity || 0), updatedAt: FieldValue.serverTimestamp() }, { merge: true });
+        const current = orderSnap.data();
+        if (current.inventoryReserved && currentSettingsSnap.exists && currentSettingsSnap.data().inventory !== null && currentSettingsSnap.data().inventory !== undefined && Number.isFinite(Number(currentSettingsSnap.data().inventory))) {
+          tx.set(settingsRef, { inventory: Number(currentSettingsSnap.data().inventory) + Number(current.quantity || 0), updatedAt: FieldValue.serverTimestamp() }, { merge: true });
         }
-        tx.update(failedOrderRef, patch);
+        tx.update(orderRef, { paymentStatus: 'initialization_failed', status: 'awaiting_payment', inventoryReserved: false, inventoryReservationReleased: Boolean(current.inventoryReserved), updatedAt: FieldValue.serverTimestamp(), paymentError: cleanString(error.message, 200) });
       });
       throw error;
     }

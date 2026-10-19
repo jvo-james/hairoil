@@ -95,8 +95,3 @@
 @media (prefers-reduced-motion: reduce) {
   .hero-product-feature, .hero-wholesale-cta { transition: none !important; }
 }
-/* Give the desktop hero copy and CTAs a deliberate margin from the viewport edge. */
-@media (min-width: 1051px) {
-  .hero-home .hero-inner { width: min(var(--page-width), calc(100% - 112px)) !important; max-width: var(--page-width); margin-inline: auto; padding-left: 0; padding-right: 0; }
-  .hero-home .hero-product-feature { right: max(56px, calc((100vw - var(--page-width)) / 2)); }
-}

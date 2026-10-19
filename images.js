@@ -1,20 +1,25 @@
 /*
   HAIR CONFIDANTE IMAGE LIBRARY
-  Every frontend image URL lives here so the art direction can be changed in one place.
+  Image paths and remote editorial placeholders used throughout the storefront.
   Unsplash photos below are editorial placeholders, not photographs of Michelle or her exact product.
   Replace product and founder images with approved brand photography before launch.
 */
 window.HC_IMAGES = {
-  logo: "images/logo.jpg", // Full brand artwork.
-  logoMark: "images/favicon.png", // Circular mark for compact placements.
+  logo: "images/logo.jpg", // Full logo artwork.
+  logoMark: "images/logo-mark.png", // Circular logo mark used in the website header.
   hero: "images/hero.jpg",
-  product: "images/oil.jpg",
-  productDetail: "images/whole.jpeg",
+  product: "images/oil.jpg", // Homepage product image; replace with your strongest bottle photo.
+  productHero: "images/oil.jpg", // Product page main image; use a clean front-facing bottle photo.
+  productDetail: "images/detail.jpg", // Product page side image; use a close-up of the bottle/label.
+  productLabel: "images/detail.jpg", // PLACEHOLDER SLOT: replace with a crisp label and packaging close-up.
+  productTexture: "images/oil.jpg", // PLACEHOLDER SLOT: replace with an oil/ingredient/packaging detail.
+  productInUse: "images/massage.webp", // PLACEHOLDER SLOT: replace with authentic product-in-use photography.
+  wholesaleBulk: "images/whole.jpeg", // PLACEHOLDER SLOT: replace with bottles arranged together for bulk orders.
   stepPart: "images/make.jpg",
   stepApply: "https://images.squarespace-cdn.com/content/v1/5db99f69b9e8d151704d0405/d8d26204-c10d-45b7-a940-90ca6fe88ebc/woman-applying-scalp-treatment-oil-for-healthy-scalp-and-hair-growth.jpeg",
   stepMassage: "images/massage.webp",
   storyOne: "images/3.jpg",
-  storyTwo: "images/7.jpg",
+  storyTwo: "images/5.jpg",
   storyThree: "images/4.jpg",
   founder: "images/michelle.jpg",
   instagramFallback: [

@@ -1,5 +1,5 @@
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/11.10.0/firebase-app.js';
-import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, signOut, EmailAuthProvider, reauthenticateWithCredential, updateEmail, updatePassword } from 'https://www.gstatic.com/firebasejs/11.10.0/firebase-auth.js';
+import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, signOut } from 'https://www.gstatic.com/firebasejs/11.10.0/firebase-auth.js';
 
 const config = window.HC_FIREBASE_CONFIG || {};
 const loginScreen = document.querySelector('[data-admin-login-screen]');
@@ -11,13 +11,12 @@ const titleMap = {
   overview: ['Overview', 'Your store at a glance.'],
   orders: ['Orders', 'Every paid order and the next step.'],
   product: ['Product & stock', 'Control the information customers see.'],
+  delivery: ['Delivery settings', 'Manage your regular delivery schedule.'],
   reviews: ['Reviews', 'Moderate customer reviews before publishing.'],
   messages: ['Messages', 'Keep track of questions and follow-ups.'],
   subscribers: ['Subscribers', 'Your growing community, in one place.'],
   purchases: ['Purchases', 'A record of verified payments.'],
-  email: ['Email centre', 'Send a note with the Hair Confidante look.'],
-  delivery: ['Delivery settings', 'Manage the expected delivery window and delivery days.'],
-  settings: ['Account settings', 'Update your administrator sign-in details.']
+  email: ['Email centre', 'Send a note with the Hair Confidante look.']
 };
 let auth;
 let currentUser = null;
@@ -61,7 +60,6 @@ function showApp() { if (loginScreen) loginScreen.hidden = true; if (appScreen) 
 function setSection(section) {
   if (!titleMap[section]) return;
   activeSection = section;
-  closeAdminSidebar();
   document.querySelectorAll('[data-admin-nav]').forEach(button => button.classList.toggle('is-active', button.dataset.adminNav === section));
   document.querySelectorAll('[data-admin-section]').forEach(panel => panel.classList.toggle('is-active', panel.dataset.adminSection === section));
   const title = document.querySelector('[data-admin-page-title]');
@@ -71,7 +69,6 @@ function setSection(section) {
   if (section === 'orders') renderOrders();
   if (section === 'product') fillProductForm();
   if (section === 'delivery') fillDeliveryForm();
-  if (section === 'settings') fillAccountSettings();
   if (section === 'reviews') renderReviews();
   if (section === 'messages') renderMessages();
   if (section === 'subscribers') renderSubscribers();
@@ -97,7 +94,7 @@ function renderMetrics() {
   Object.entries(values).forEach(([key, value]) => { const node = document.querySelector(`[data-metric="${key}"]`); if (node) node.textContent = value; });
   const target = document.querySelector('[data-overview-orders]');
   const orders = (dashboardData?.orders || []).slice(0, 6);
-  if (target) target.innerHTML = table(['Order', 'Customer', 'Total', 'Status', 'Placed'], orders.map(order => `<tr><td><strong>${esc(order.orderNumber)}</strong><small>${esc(order.mode || 'retail')}</small></td><td><strong>${esc(order.name || 'Customer')}</strong><small>${esc(order.email || '')}</small></td><td><strong>${gh(order.total)}</strong><small>Product subtotal · ${Number(order.quantity || 1)} bottle${Number(order.quantity) === 1 ? '' : 's'}</small>${Number(order.processingFee || 0) ? `<small>Processing fee: ${gh(order.processingFee)}</small>` : ''}</td><td>${statusPill(order.status)}</td><td>${esc(shortDate(order.createdAt))}</td></tr>`));
+  if (target) target.innerHTML = table(['Order', 'Customer', 'Total', 'Status', 'Placed'], orders.map(order => `<tr><td><strong>${esc(order.orderNumber)}</strong><small>${esc(order.mode || 'retail')}</small></td><td><strong>${esc(order.name || 'Customer')}</strong><small>${esc(order.email || '')}</small></td><td><strong>${gh(order.total)}</strong><small>${Number(order.quantity || 1)} bottle${Number(order.quantity) === 1 ? '' : 's'}</small></td><td>${statusPill(order.status)}</td><td>${esc(shortDate(order.createdAt))}</td></tr>`));
 }
 
 function renderOrders() {
@@ -106,66 +103,25 @@ function renderOrders() {
   const search = String(document.querySelector('[data-order-search]')?.value || '').toLowerCase().trim();
   const filter = document.querySelector('[data-order-filter]')?.value || 'all';
   const orders = (dashboardData?.orders || []).filter(order => {
-    const text = `${order.orderNumber} ${order.name} ${order.email} ${order.phone} ${order.city || ''} ${order.region || ''}`.toLowerCase();
+    const text = `${order.orderNumber} ${order.name} ${order.email} ${order.phone}`.toLowerCase();
     return (!search || text.includes(search)) && (filter === 'all' || order.status === filter);
   });
   if (!orders.length) { target.innerHTML = emptyTable('No orders match this view.'); return; }
   const rows = orders.map(order => {
     const paid = order.paymentStatus === 'success';
-    const fee = Number(order.processingFee || 0);
-    
     const statusOptions = ['preparing','ready','dispatched','delivered','cancelled'].map(status => `<option value="${status}" ${order.status === status ? 'selected' : ''}>${status[0].toUpperCase() + status.slice(1)}</option>`).join('');
-    const dateStatus = order.status === 'delivered' ? `Delivered ${esc(shortDate(order.deliveredAt || '') )}` : order.expectedDeliveryDate && order.status !== 'cancelled' ? `ETA ${esc(shortDate(order.expectedDeliveryDate))}` : '';
-    return `<tr class="admin-order-row" data-order-row="${esc(order.orderNumber)}"><td><button type="button" class="order-open-button" data-order-open="${esc(order.orderNumber)}"><strong>${esc(order.orderNumber)}</strong><small>${esc(order.mode || 'retail')} · ${esc(shortDate(order.createdAt))}</small><small>View full details <i class="fa-solid fa-arrow-up-right-from-square"></i></small></button></td><td><strong>${esc(order.name)}</strong><small>${esc(order.email)}<br>${esc(order.phone || '')}</small><small>${esc([order.address,order.city,order.region,order.country].filter(Boolean).join(', '))}</small></td><td><strong>${gh(order.total)}</strong><small>Product subtotal</small>${fee > 0 ? `<small>Processing fee: ${gh(fee)}</small>` : ''}<small>${Number(order.quantity || 1)} bottle${Number(order.quantity) === 1 ? '' : 's'}</small></td><td>${statusPill(order.status)}<small>${paid ? 'Paystack verified' : esc(order.paymentStatus || 'Unpaid')}</small><small>${dateStatus}</small></td><td>${paid ? `<div class="table-actions"><select aria-label="New status for ${esc(order.orderNumber)}" data-status-select="${esc(order.orderNumber)}">${statusOptions}</select><button type="button" class="table-action" data-save-status="${esc(order.orderNumber)}">Save</button></div>` : '<small>Payment not confirmed</small>'}</td></tr>`;
+    return `<tr><td><strong>${esc(order.orderNumber)}</strong><small>${esc(order.mode || 'retail')} · ${esc(shortDate(order.createdAt))}</small></td><td><strong>${esc(order.name)}</strong><small>${esc(order.email)}<br>${esc(order.phone || '')}</small><small>${esc(order.address || '')}</small><small>${esc([order.city, order.region, order.postalCode, order.country].filter(Boolean).join(', '))}</small></td><td><strong>${gh(order.total)}</strong><small>${Number(order.quantity || 1)} bottle${Number(order.quantity) === 1 ? '' : 's'}</small></td><td>${statusPill(order.status)}<small>${paid ? 'Paystack verified' : esc(order.paymentStatus || 'Unpaid')}</small></td><td>${paid ? `<div class="table-actions"><select aria-label="New status for ${esc(order.orderNumber)}" data-status-select="${esc(order.orderNumber)}" style="max-width:125px;padding:7px;border:1px solid var(--line);background:#fff;font-size:9px">${statusOptions}</select><button type="button" class="table-action" data-save-status="${esc(order.orderNumber)}">Save</button></div>` : '<small>Payment not confirmed</small>'}</td></tr>`;
   });
-  target.innerHTML = table(['Order', 'Customer & delivery', 'Product subtotal', 'Status & delivery', 'Quick status'], rows, 1060);
-  target.querySelectorAll('[data-order-open]').forEach(button => button.addEventListener('click', () => openOrderDrawer(button.dataset.orderOpen)));
-  target.querySelectorAll('[data-order-row]').forEach(row => row.addEventListener('click', event => { if (event.target.closest('button, select, input, a, textarea, label')) return; openOrderDrawer(row.dataset.orderRow); }));
+  target.innerHTML = table(['Order', 'Customer & delivery', 'Total', 'Current status', 'Update status'], rows, 1000);
   target.querySelectorAll('[data-save-status]').forEach(button => button.addEventListener('click', async () => {
     const orderNumber = button.dataset.saveStatus;
     const status = target.querySelector(`[data-status-select="${CSS.escape(orderNumber)}"]`)?.value;
-    try { const result = await loadingButton(button, () => api({ action: 'update-order-status', orderNumber, status }), 'Updating'); bannerMessage(result.message); await loadDashboard(false); if (document.querySelector('[data-order-drawer]')?.classList.contains('is-open')) openOrderDrawer(orderNumber); }
-    catch (error) { bannerMessage(error.message, 'error'); }
+    try {
+      const result = await loadingButton(button, () => api({ action: 'update-order-status', orderNumber, status }), 'Updating');
+      bannerMessage(result.message); await loadDashboard(false);
+    } catch (error) { bannerMessage(error.message, 'error'); }
   }));
 }
-
-let openDrawerOrderNumber = null;
-function openOrderDrawer(orderNumber) {
-  const drawer = document.querySelector('[data-order-drawer]');
-  const order = (dashboardData?.orders || []).find(item => item.orderNumber === orderNumber);
-  if (!drawer || !order) return;
-  openDrawerOrderNumber = orderNumber;
-  const title = drawer.querySelector('#order-drawer-title');
-  if (title) title.innerHTML = `Order <em>${esc(order.orderNumber)}</em>`;
-  const subtitle = drawer.querySelector('[data-order-drawer-subtitle]');
-  if (subtitle) subtitle.textContent = `${order.status || 'Order'} · placed ${dateText(order.createdAt)}`;
-  const summary = drawer.querySelector('[data-order-drawer-summary]');
-  const fee = Number(order.processingFee || 0); 
-  const deliveryDateSummary = order.status === 'delivered' && order.deliveredAt
-    ? `<div class="drawer-delivery-date is-delivered"><span><i class="fa-solid fa-circle-check"></i> Delivered on</span><strong>${esc(dateText(order.deliveredAt))}</strong></div>`
-    : order.status !== 'cancelled' && order.expectedDeliveryDate
-      ? `<div class="drawer-delivery-date"><span><i class="fa-solid fa-calendar-check"></i> Expected delivery</span><strong>${esc(shortDate(order.expectedDeliveryDate))}</strong></div>` : '';
-  if (summary) summary.innerHTML = `<div class="drawer-order-summary"><div class="drawer-order-summary-top"><span class="drawer-order-icon"><i class="fa-solid fa-box-open"></i></span><div><small>ITEMS ORDERED</small><strong>${esc(order.productName || 'Hair Confidante Hair Oil')}</strong><span>${Number(order.quantity || 1)} bottle${Number(order.quantity) === 1 ? '' : 's'} · ${esc(order.mode || 'retail')}</span></div>${statusPill(order.status)}</div>${deliveryDateSummary}<div class="drawer-financial-line"><span>Product subtotal</span><strong>${gh(order.total)}</strong></div>${fee ? `<div class="drawer-financial-line drawer-fee-line"><span>Processing fee</span><strong>${gh(fee)}</strong></div>` : ''}<div class="drawer-order-reference"><span>PAYMENT STATUS</span><strong>${esc(order.paymentStatus || 'Not available')}${order.paymentChannel ? ` · ${esc(order.paymentChannel)}` : ''}</strong></div><div class="drawer-order-reference"><span>PAYMENT REFERENCE</span><strong>${esc(order.paymentReference || 'Not available')}</strong></div><div class="drawer-order-reference"><span>ORDER PLACED</span><strong>${esc(dateText(order.createdAt))}</strong></div></div>`;
-  const form = drawer.querySelector('[data-order-drawer-form]');
-  if (form) {
-    ['name','email','phone','country','countryCode','region','city','postalCode','address','note'].forEach(key => { if (form.elements[key]) form.elements[key].value = order[key] || ''; });
-    if (form.elements.expectedDeliveryDate) form.elements.expectedDeliveryDate.value = order.expectedDeliveryDate ? String(order.expectedDeliveryDate).slice(0,10) : '';
-    if (form.elements.status) { form.elements.status.value = order.status || 'awaiting_payment'; form.elements.status.disabled = order.paymentStatus !== 'success'; }
-    const alert = form.querySelector('[data-order-drawer-alert]'); if (alert) alert.hidden = true;
-  }
-  drawer.classList.add('is-open'); drawer.setAttribute('aria-hidden','false'); document.body.classList.add('admin-drawer-open');
-  setTimeout(() => form?.elements.name?.focus({preventScroll:true}),100);
-}
-function closeOrderDrawer() { const drawer=document.querySelector('[data-order-drawer]'); drawer?.classList.remove('is-open'); drawer?.setAttribute('aria-hidden','true'); document.body.classList.remove('admin-drawer-open'); openDrawerOrderNumber=null; }
-function fillDeliveryForm() {
-  const form=document.querySelector('[data-delivery-settings-form]'); const settings=dashboardData?.settings; if(!form||!settings)return;
-  form.elements.estimatedDeliveryDays.value=String(settings.estimatedDeliveryDays || 3);
-  const days=Array.isArray(settings.dispatchDays)?settings.dispatchDays.map(Number):[1,2,3,4,5,6];
-  form.querySelectorAll('[data-admin-dispatch-day]').forEach(input=>input.checked=days.includes(Number(input.value)));
-}
-function fillAccountSettings() { const node=document.querySelector('[data-account-current-email]'); if(node)node.textContent=currentUser?.email || dashboardData?.admin?.email || 'Admin account'; }
-function closeAdminSidebar() { const sidebar=document.querySelector('.admin-sidebar'); const backdrop=document.querySelector('[data-admin-sidebar-backdrop]'); sidebar?.classList.remove('is-open'); sidebar?.setAttribute('aria-hidden','true'); document.body.classList.remove('admin-nav-open'); if(backdrop)backdrop.hidden=true; const toggle=document.querySelector('[data-admin-menu-toggle]'); toggle?.setAttribute('aria-expanded','false'); }
-function toggleAdminSidebar(force) { const sidebar=document.querySelector('.admin-sidebar'); const backdrop=document.querySelector('[data-admin-sidebar-backdrop]'); if(!sidebar||!backdrop)return; const open=force ?? !sidebar.classList.contains('is-open'); sidebar.classList.toggle('is-open',open); sidebar.setAttribute('aria-hidden',String(!open)); backdrop.hidden=!open; document.body.classList.toggle('admin-nav-open',open); document.querySelector('[data-admin-menu-toggle]')?.setAttribute('aria-expanded',String(open)); }
 
 function fillProductForm() {
   const form = document.querySelector('[data-product-settings-form]');
@@ -174,6 +130,15 @@ function fillProductForm() {
   for (const key of ['productName','productDescription','retailPrice','wholesalePrice','wholesaleMinQty','inventory','productImageUrl']) {
     if (form.elements[key]) form.elements[key].value = settings[key] ?? '';
   }
+}
+
+function fillDeliveryForm() {
+  const form = document.querySelector('[data-delivery-settings-form]');
+  const settings = dashboardData?.settings;
+  if (!form || !settings) return;
+  if (form.elements.estimatedDeliveryDays) form.elements.estimatedDeliveryDays.value = String(settings.estimatedDeliveryDays || 3);
+  const days = Array.isArray(settings.dispatchDays) ? settings.dispatchDays.map(Number) : [1, 2, 3, 4, 5, 6];
+  form.querySelectorAll('[data-admin-dispatch-day]').forEach(input => { input.checked = days.includes(Number(input.value)); });
 }
 
 function renderReviews() {
@@ -232,8 +197,19 @@ function renderPurchases() {
   const target = document.querySelector('[data-purchases-table]');
   if (!target) return;
   const purchases = dashboardData?.purchases || [];
-  const rows = purchases.map(order => `<tr><td><strong>${esc(order.orderNumber)}</strong><small>${esc(dateText(order.paidAt || order.createdAt))}</small></td><td><strong>${esc(order.name)}</strong><small>${esc(order.email)}</small></td><td><strong>${esc(order.productName)}</strong><small>${Number(order.quantity)} bottle${Number(order.quantity) === 1 ? '' : 's'} · ${esc(order.mode)}</small></td><td><strong>${gh(order.total)}</strong><small>Product subtotal</small>${Number(order.processingFee || 0) ? `<small>Processing fee: ${gh(order.processingFee)}</small>` : ''}<small>${esc(order.paymentChannel || 'Paystack')}</small></td><td>${statusPill(order.status)}</td></tr>`);
-  target.innerHTML = table(['Order', 'Customer', 'Items', 'Paid', 'Fulfilment'], rows, 820);
+  const rows = purchases.map(order => `<tr><td><strong>${esc(order.orderNumber)}</strong><small>${esc(dateText(order.paidAt || order.createdAt))}</small></td><td><strong>${esc(order.name)}</strong><small>${esc(order.email)}</small><small>${esc([order.city, order.region, order.country].filter(Boolean).join(', '))}</small></td><td><strong>${esc(order.productName)}</strong><small>${Number(order.quantity)} bottle${Number(order.quantity) === 1 ? '' : 's'} · ${esc(order.mode)}</small></td><td><strong>${gh(order.total)}</strong><small>${esc(order.paymentChannel || 'Paystack')}</small></td><td>${statusPill(order.status)}<div style="margin-top:7px"><button type="button" class="table-action" data-admin-receipt="${esc(order.orderNumber)}"><i class="fa-solid fa-download"></i> Receipt</button></div></td></tr>`);
+  target.innerHTML = table(['Order', 'Customer', 'Items', 'Paid', 'Fulfilment & receipt'], rows, 900);
+  target.querySelectorAll('[data-admin-receipt]').forEach(button => button.addEventListener('click', () => {
+    const order = purchases.find(item => item.orderNumber === button.dataset.adminReceipt);
+    if (!order) return;
+    const address = [order.address, order.city, order.region, order.postalCode, order.country].filter(Boolean).join(', ');
+    const qty = Number(order.quantity || 1);
+    const unitPrice = Number(order.unitPrice || (Number(order.total || 0) / qty));
+    const paidDate = dateText(order.paidAt || order.createdAt);
+    const receipt = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Hair Confidante receipt ${esc(order.orderNumber)}</title><style>*{box-sizing:border-box}body{margin:0;padding:28px;background:#f2ede5;color:#33212a;font:14px/1.55 Arial,sans-serif}.sheet{max-width:760px;margin:auto;padding:32px;background:#fffdf8;border:1px solid #e4dbd1}.head{display:flex;align-items:center;gap:12px;padding-bottom:18px;border-bottom:1px solid #e4dbd1}.mark{display:grid;place-items:center;width:42px;height:42px;border:1px solid #b98167;border-radius:50%;font-family:Georgia,serif}.head small,.muted{display:block;color:#857a7d;font-size:10px}.paid{margin-left:auto;color:#516c43;font-size:11px;font-weight:bold;letter-spacing:.12em}.intro{padding:24px 0}.intro h1{margin:0 0 6px;font:32px Georgia,serif}.meta{display:grid;grid-template-columns:1fr 1fr;gap:18px;padding:15px 0;border-block:1px solid #e4dbd1}.meta strong,.meta span{display:block;overflow-wrap:anywhere;font-size:11px}.label{display:block;margin-bottom:5px;color:#857a7d;font-size:9px;font-weight:bold;letter-spacing:.12em;text-transform:uppercase}.line{display:flex;justify-content:space-between;gap:18px;padding:14px 0;border-bottom:1px solid #e4dbd1;font-size:12px}.total{display:flex;justify-content:space-between;padding:18px 0;font-weight:bold;border-bottom:2px solid #33212a}.note{color:#62565d;font-size:11px;line-height:1.7}@media(max-width:560px){body{padding:8px}.sheet{padding:18px}.meta{grid-template-columns:1fr}}</style></head><body><main class="sheet"><header class="head"><span class="mark">HC</span><div><strong>HAIR CONFIDANTE</strong><small>by MB · PAYMENT RECEIPT</small></div><span class="paid">PAID</span></header><section class="intro"><span class="label">Order confirmed</span><h1>Payment receipt</h1><span class="muted">Reference: ${esc(order.paymentReference || '')}</span></section><section class="meta"><div><span class="label">Order number</span><strong>${esc(order.orderNumber)}</strong><span class="muted">Paid on ${esc(paidDate)}</span></div><div><span class="label">Customer</span><strong>${esc(order.name || '')}</strong><span>${esc(order.email || '')}</span><span>${esc(order.phone || '')}</span></div><div><span class="label">Delivery address</span><strong>${esc(address || 'Provided at checkout')}</strong></div><div><span class="label">Payment method</span><strong>${esc(order.paymentChannel || 'Paystack')}</strong></div></section><div class="line"><span><strong>${esc(order.productName || 'Hair Confidante Hair Oil')}</strong><span class="muted">${esc(order.mode || 'retail')} · ${qty} bottle${qty === 1 ? '' : 's'} × ${gh(unitPrice)}</span></span><strong>${gh(unitPrice * qty)}</strong></div><div class="line"><span>Product subtotal paid</span><strong>${gh(order.total)}</strong></div><div class="line"><span>Delivery fee</span><strong>Not included</strong></div><div class="total"><span>Total paid</span><strong>${gh(order.total)}</strong></div><p class="note">The payment covers the product subtotal only. The delivery fee will be estimated and communicated separately after checkout.</p><p class="muted">Currency: GHS · Keep this receipt for your records.</p></main></body></html>`;
+    const url = URL.createObjectURL(new Blob([receipt], { type: 'text/html;charset=utf-8' }));
+    const link = document.createElement('a'); link.href = url; link.download = `Hair-Confidante-Receipt-${String(order.orderNumber || 'order').replace(/[^a-z0-9-]/gi, '-')}.html`; document.body.append(link); link.click(); link.remove(); setTimeout(() => URL.revokeObjectURL(url), 5000);
+  }));
 }
 
 function renderEmailHistory() {
@@ -259,7 +235,7 @@ function loadDashboard(showNotice = true) {
       showApp();
       const account = document.querySelector('[data-admin-email]');
       if (account) account.textContent = data.admin?.email || currentUser?.email || 'Admin account';
-      renderMetrics(); renderOrders(); fillProductForm(); fillDeliveryForm(); fillAccountSettings(); renderReviews(); renderMessages(); renderSubscribers(); renderPurchases(); renderEmailHistory();
+      renderMetrics(); renderOrders(); fillProductForm(); fillDeliveryForm(); renderReviews(); renderMessages(); renderSubscribers(); renderPurchases(); renderEmailHistory();
       if (showNotice) bannerMessage('Workspace is up to date.');
       return data;
     } catch (error) {
@@ -304,11 +280,6 @@ async function submitLogin(event) {
 function bindNavigation() {
   document.querySelectorAll('[data-admin-nav]').forEach(button => button.addEventListener('click', () => setSection(button.dataset.adminNav)));
   document.querySelectorAll('[data-admin-go]').forEach(button => button.addEventListener('click', () => setSection(button.dataset.adminGo)));
-  document.querySelector('[data-admin-menu-toggle]')?.addEventListener('click', () => toggleAdminSidebar());
-  document.querySelector('[data-admin-sidebar-backdrop]')?.addEventListener('click', closeAdminSidebar);
-  document.addEventListener('keydown', event => { if (event.key === 'Escape') { closeAdminSidebar(); closeOrderDrawer(); } });
-  document.querySelectorAll('[data-close-order-drawer]').forEach(button => button.addEventListener('click', closeOrderDrawer));
-  document.querySelector('[data-order-drawer]')?.addEventListener('click', event => { if (event.target === event.currentTarget) closeOrderDrawer(); });
   document.querySelector('[data-admin-refresh]')?.addEventListener('click', async event => runAction(event.currentTarget, () => loadDashboard(false), 'Refreshing'));
   document.querySelector('[data-order-search]')?.addEventListener('input', renderOrders);
   document.querySelector('[data-order-filter]')?.addEventListener('change', renderOrders);
@@ -329,21 +300,26 @@ function bindForms() {
     const values = Object.fromEntries(new FormData(productForm).entries());
     runAction(button, async () => { const result = await api({ action: 'update-settings', ...values }); bannerMessage(result.message); await loadDashboard(false); }, 'Saving product');
   });
+  const deliveryForm = document.querySelector('[data-delivery-settings-form]');
+  deliveryForm?.addEventListener('submit', event => {
+    event.preventDefault();
+    if (!deliveryForm.reportValidity()) return;
+    const days = [...deliveryForm.querySelectorAll('[data-admin-dispatch-day]:checked')].map(input => Number(input.value));
+    if (!days.length) { bannerMessage('Select at least one delivery day.', 'error'); return; }
+    const button = deliveryForm.querySelector('button[type="submit"]');
+    runAction(button, async () => { const result = await api({ action: 'update-delivery-settings', dispatchDays: days, estimatedDeliveryDays: deliveryForm.elements.estimatedDeliveryDays.value }); bannerMessage(result.message); await loadDashboard(false); }, 'Saving delivery settings');
+  });
   const emailForm = document.querySelector('[data-admin-email-form]');
   emailForm?.addEventListener('submit', event => {
-    event.preventDefault(); if (!emailForm.reportValidity()) return;
-    const values = Object.fromEntries(new FormData(emailForm).entries()); values.toSubscribers = emailForm.elements.toSubscribers.checked;
+    event.preventDefault();
+    if (!emailForm.reportValidity()) return;
+    const values = Object.fromEntries(new FormData(emailForm).entries());
+    values.toSubscribers = emailForm.elements.toSubscribers.checked;
     if (values.toSubscribers && !window.confirm('Send this email to every active subscriber?')) return;
     if (!values.toSubscribers && !values.to) { bannerMessage('Add a recipient email or select all active subscribers.', 'error'); return; }
     const button = emailForm.querySelector('button[type="submit"]');
     runAction(button, async () => { const result = await api({ action: 'send-email', ...values }); bannerMessage(result.message); emailForm.reset(); await loadDashboard(false); }, 'Sending emails');
   });
-  const deliveryForm=document.querySelector('[data-delivery-settings-form]');
-  deliveryForm?.addEventListener('submit', event => { event.preventDefault(); if(!deliveryForm.reportValidity())return; const days=[...deliveryForm.querySelectorAll('[data-admin-dispatch-day]:checked')].map(x=>Number(x.value)); if(!days.length){bannerMessage('Select at least one delivery day.','error');return;} const button=deliveryForm.querySelector('button[type="submit"]'); runAction(button,async()=>{const result=await api({action:'update-delivery-settings',dispatchDays:days,estimatedDeliveryDays:deliveryForm.elements.estimatedDeliveryDays.value});bannerMessage(result.message);await loadDashboard(false);},'Saving delivery settings'); });
-  const orderForm=document.querySelector('[data-order-drawer-form]');
-  orderForm?.addEventListener('submit', event => { event.preventDefault(); const alert=orderForm.querySelector('[data-order-drawer-alert]'); alert.hidden=true; if(!orderForm.reportValidity())return; const values=Object.fromEntries(new FormData(orderForm).entries()); const orderNumber=openDrawerOrderNumber; if(!orderNumber)return; const button=orderForm.querySelector('button[type="submit"]'); runAction(button,async()=>{const order=(dashboardData?.orders||[]).find(o=>o.orderNumber===orderNumber); const detailPayload={action:'update-order-details',orderNumber,...values}; delete detailPayload.status; await api(detailPayload); if(order && values.status && values.status!==order.status){await api({action:'update-order-status',orderNumber,status:values.status});} bannerMessage('Order details saved.'); await loadDashboard(false); closeOrderDrawer();},'Saving order'); });
-  const accountForm=document.querySelector('[data-admin-account-form]');
-  accountForm?.addEventListener('submit', event => { event.preventDefault(); const alert=accountForm.querySelector('[data-account-settings-alert]'); alert.hidden=true; if(!accountForm.reportValidity())return; const newEmail=String(accountForm.elements.newEmail.value||'').trim(); const newPassword=String(accountForm.elements.newPassword.value||''); const confirmPassword=String(accountForm.elements.confirmPassword.value||''); const currentPassword=String(accountForm.elements.currentPassword.value||''); if(!newEmail&&!newPassword){alert.textContent='Enter a new email address or a new password.';alert.hidden=false;return;} if(newPassword.length && newPassword!==confirmPassword){alert.textContent='The new passwords do not match.';alert.hidden=false;return;} if(newPassword.length && newPassword.length<8){alert.textContent='Use at least 8 characters for the new password.';alert.hidden=false;return;} const button=accountForm.querySelector('button[type="submit"]'); runAction(button,async()=>{ if(!currentUser?.email)throw new Error('Please sign in again.'); await reauthenticateWithCredential(currentUser,EmailAuthProvider.credential(currentUser.email,currentPassword)); if(newPassword)await updatePassword(currentUser,newPassword); if(newEmail && newEmail.toLowerCase()!==currentUser.email.toLowerCase())await updateEmail(currentUser,newEmail); const changedEmail=Boolean(newEmail && newEmail.toLowerCase()!==dashboardData?.admin?.email?.toLowerCase()); await currentUser.getIdToken(true); accountForm.reset(); fillAccountSettings(); if(changedEmail){bannerMessage('Email updated. Now update ADMIN_EMAILS in Netlify to the new email before signing in again.');}else bannerMessage('Account settings updated.'); },'Updating account').catch(error=>{alert.textContent=error.message || 'Account settings could not be updated.';alert.hidden=false;}); });
 }
 
 function init() {

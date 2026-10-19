@@ -29,13 +29,16 @@ export async function requireAdmin(event) {
   const { db, FieldValue } = getFirebase();
   const settingsRef = db.collection('settings').doc('store');
   const settingsSnap = await settingsRef.get();
-  const registeredUid = settingsSnap.exists ? settingsSnap.data().adminUid : null;
+  const storeSettings = settingsSnap.exists ? settingsSnap.data() : {};
+  const registeredUid = storeSettings.adminUid || null;
   const isRegisteredOwner = Boolean(registeredUid && registeredUid === decoded.uid);
   if (!decoded.email || (!isAllowlisted && !isRegisteredOwner)) {
     throw Object.assign(new Error('This account does not have admin access.'), { statusCode: 403 });
   }
   if (isAllowlisted && !registeredUid && decoded.uid) {
     await settingsRef.set({ adminUid: decoded.uid, adminUidLinkedAt: FieldValue.serverTimestamp() }, { merge: true });
+    storeSettings.adminUid = decoded.uid;
   }
-  return decoded;
+  // Reuse this already-read document in admin-api instead of reading settings/store twice.
+  return { ...decoded, storeSettings };
 }

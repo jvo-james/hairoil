@@ -1,5 +1,5 @@
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/11.10.0/firebase-app.js';
-import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, signOut, EmailAuthProvider, reauthenticateWithCredential, updateEmail, updatePassword } from 'https://www.gstatic.com/firebasejs/11.10.0/firebase-auth.js';
+import { initializeAuth, browserLocalPersistence, browserSessionPersistence, inMemoryPersistence, onAuthStateChanged, signInWithEmailAndPassword, signOut, EmailAuthProvider, reauthenticateWithCredential, updateEmail, updatePassword } from 'https://www.gstatic.com/firebasejs/11.10.0/firebase-auth.js';
 
 const config = window.HC_FIREBASE_CONFIG || {};
 const loginScreen = document.querySelector('[data-admin-login-screen]');
@@ -644,7 +644,12 @@ function init() {
       return;
     }
     const app = initializeApp(config);
-    auth = getAuth(app);
+    // This admin console only needs email/password auth. Avoid Firebase Auth's
+    // IndexedDB persistence path, which can lose its connection in some browsers.
+    // localStorage keeps sessions across reloads; session/memory are safe fallbacks.
+    auth = initializeAuth(app, {
+      persistence: [browserLocalPersistence, browserSessionPersistence, inMemoryPersistence]
+    });
     onAuthStateChanged(auth, async user => {
       showAdminLoader(user ? 'Loading your workspace' : 'Preparing sign-in');
       currentUser = user;

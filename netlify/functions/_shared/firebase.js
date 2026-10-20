@@ -1,5 +1,30 @@
 import admin from 'firebase-admin';
 
+// Netlify environment variable values are strings. Normalise common copy/paste
+// artefacts without making the allow-list comparison less strict.
+function normaliseAdminEmail(value) {
+  return String(value ?? '')
+    .normalize('NFKC')
+    .replace(/[\u200B-\u200D\uFEFF]/g, '')
+    .trim()
+    .replace(/^(['"])(.*)\1$/, '$2')
+    .trim()
+    .toLowerCase();
+}
+
+function parseAdminEmails(value) {
+  const cleaned = String(value ?? '')
+    .normalize('NFKC')
+    .replace(/[\u200B-\u200D\uFEFF]/g, '')
+    .trim()
+    .replace(/^(['"])([\s\S]*)\1$/, '$2')
+    .replace(/^ADMIN_EMAILS\s*=\s*/i, '');
+  return cleaned
+    .split(/[,;\r\n]+/)
+    .map(normaliseAdminEmail)
+    .filter(Boolean);
+}
+
 let cachedDb;
 let cachedAuth;
 
@@ -24,16 +49,38 @@ export async function requireAdmin(event) {
   let decoded;
   try { decoded = await auth.verifyIdToken(match[1], true); }
   catch { throw Object.assign(new Error('Your sign-in has expired. Please sign in again.'), { statusCode: 401 }); }
-  const allowlist = (process.env.ADMIN_EMAILS || '').split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
-  const isAllowlisted = Boolean(decoded.email && allowlist.includes(decoded.email.toLowerCase()));
+  const allowlist = parseAdminEmails(process.env.ADMIN_EMAILS);
+  const tokenEmail = normaliseAdminEmail(decoded.email);
+  const isAllowlisted = Boolean(tokenEmail && allowlist.includes(tokenEmail));
   const { db, FieldValue } = getFirebase();
   const settingsRef = db.collection('settings').doc('store');
   const settingsSnap = await settingsRef.get();
   const storeSettings = settingsSnap.exists ? settingsSnap.data() : {};
   const registeredUid = storeSettings.adminUid || null;
   const isRegisteredOwner = Boolean(registeredUid && registeredUid === decoded.uid);
-  if (!decoded.email || (!isAllowlisted && !isRegisteredOwner)) {
-    throw Object.assign(new Error('This account does not have admin access.'), { statusCode: 403 });
+
+  if (!tokenEmail) {
+    console.warn('[admin-auth] Rejected sign-in: verified Firebase token has no email claim.', {
+      firebaseProjectId: decoded.aud || null,
+      uidPresent: Boolean(decoded.uid)
+    });
+    throw Object.assign(new Error('Firebase sign-in succeeded, but the verified session has no email address. Sign out and sign in again with the admin email/password account.'), { statusCode: 403 });
+  }
+
+  if (!isAllowlisted && !isRegisteredOwner) {
+    // Log diagnostic flags, never the configured allow-list or service-account secrets.
+    console.warn('[admin-auth] Rejected admin access.', {
+      firebaseProjectId: decoded.aud || null,
+      adminEmailsConfigured: allowlist.length > 0,
+      adminEmailsCount: allowlist.length,
+      tokenEmailMatchesAllowlist: isAllowlisted,
+      registeredAdminUidConfigured: Boolean(registeredUid),
+      tokenUidMatchesRegisteredAdmin: isRegisteredOwner
+    });
+    const message = allowlist.length === 0
+      ? 'Admin access is not configured for this deployed Netlify Function: ADMIN_EMAILS is empty or unavailable. Check that the variable is available to Functions for the active deployment context, then redeploy.'
+      : 'Firebase sign-in succeeded, but this deployed Netlify Function did not authorize the account email in the verified session. Check the active Netlify site/deployment context and the ADMIN_EMAILS value, then redeploy.';
+    throw Object.assign(new Error(message), { statusCode: 403 });
   }
   if (isAllowlisted && !registeredUid && decoded.uid) {
     await settingsRef.set({ adminUid: decoded.uid, adminUidLinkedAt: FieldValue.serverTimestamp() }, { merge: true });

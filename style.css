@@ -1560,7 +1560,7 @@ body.admin-data-loading .admin-shell { filter: blur(5px); pointer-events: none; 
 }
 
 
-/* Hair Confidante editorial refresh — The Formula, business cards and contact paths */
+/* Hair Confidante editorial refresh: The Formula, business cards and contact paths */
 .intro-section { position: relative; }
 .intro-section > .section-kicker { margin-bottom: clamp(28px, 4.2vw, 54px); }
 .intro-grid { grid-template-columns: minmax(0,1.04fr) minmax(0,.96fr); gap: clamp(38px, 7.2vw, 104px); }
@@ -1673,7 +1673,7 @@ body.admin-data-loading .admin-shell { filter: blur(5px); pointer-events: none; 
 .drawer-footer a i { color: #627c53; }
 .menu-links > .menu-track-link { font-family: var(--serif); }
 
-/* Checkout refinements — inline summary below delivery instructions on mobile */
+/* Checkout refinements: inline summary below delivery instructions on mobile */
 .summary-total strong { font-family: var(--sans); font-size: 26px; font-weight: 700; letter-spacing: -.025em; }
 .consent-check { align-items: flex-start; gap: 13px; margin: 19px 0 22px; padding: 15px 16px; border: 1px solid #dfd3c7; background: #f8f3ec; color: var(--ink); }
 .consent-check input { width: 18px; height: 18px; flex-basis: 18px; margin-top: 2px; accent-color: var(--plum); cursor: pointer; }
@@ -1737,4 +1737,221 @@ body.admin-data-loading .admin-shell { filter: blur(5px); pointer-events: none; 
   .mobile-order-summary-preview { gap: 5px; }
   .mobile-order-summary-preview > span + span { padding-left: 5px; }
   .mobile-order-summary-preview strong { font-size: 9px; }
+}
+
+
+/* Product page trade invitation, editorial wholesale feature */
+.trade-invitation {
+  --trade-cream: #f3e6d7;
+  --trade-muted: #d6c3b2;
+  position: relative;
+  isolation: isolate;
+  display: grid;
+  gap: 0;
+  margin-top: 29px;
+  padding: 20px 21px 18px;
+  overflow: hidden;
+  border: 1px solid rgba(255,248,239,.12);
+  background: #35222d;
+  color: #fffaf3;
+  text-decoration: none;
+  box-shadow: 0 17px 38px rgba(51,33,42,.13);
+  transition: transform .28s ease, box-shadow .28s ease, border-color .28s ease;
+}
+.trade-invitation::before,
+.trade-invitation::after {
+  position: absolute;
+  z-index: -1;
+  content: "";
+  pointer-events: none;
+}
+.trade-invitation::before {
+  top: 76px;
+  right: -70px;
+  width: 230px;
+  height: 230px;
+  border: 1px solid rgba(222,183,145,.19);
+  border-radius: 50%;
+  box-shadow: 0 0 0 20px rgba(222,183,145,.035), 0 0 0 42px rgba(222,183,145,.025);
+}
+.trade-invitation::after {
+  top: 0;
+  right: 33px;
+  width: 1px;
+  height: 100%;
+  background: linear-gradient(180deg,transparent,rgba(222,183,145,.13) 25%,rgba(222,183,145,.08) 74%,transparent);
+}
+.trade-invitation:hover,
+.trade-invitation:focus-visible {
+  transform: translateY(-4px);
+  border-color: rgba(222,183,145,.55);
+  box-shadow: 0 24px 48px rgba(51,33,42,.2);
+  outline: none;
+}
+.trade-invitation-topline,
+.trade-invitation-brand,
+.trade-invitation-number,
+.trade-invitation-bottom,
+.trade-invitation-arrow {
+  display: flex;
+  align-items: center;
+}
+.trade-invitation-topline {
+  justify-content: space-between;
+  gap: 10px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid rgba(255,250,243,.18);
+}
+.trade-invitation-brand {
+  gap: 9px;
+  color: #e8c5a3;
+  font-size: 8px;
+  font-weight: 800;
+  letter-spacing: .17em;
+}
+.trade-invitation-brand i { font-size: 11px; }
+.trade-invitation-number {
+  color: rgba(255,250,243,.54);
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: .14em;
+}
+.trade-invitation-main {
+  display: grid;
+  gap: 9px;
+  padding: 22px 0 20px;
+}
+.trade-invitation-kicker {
+  color: #d8b18c;
+  font-size: 7px;
+  font-weight: 800;
+  letter-spacing: .14em;
+  line-height: 1.5;
+}
+.trade-invitation-main > strong {
+  max-width: 330px;
+  color: #fffaf3;
+  font-family: var(--serif);
+  font-size: clamp(29px,3.1vw,38px);
+  font-weight: 500;
+  letter-spacing: -.045em;
+  line-height: 1.03;
+}
+.trade-invitation-main > strong em {
+  color: #d9b18e;
+  font-weight: 500;
+}
+.trade-invitation-description {
+  max-width: 340px;
+  color: rgba(255,250,243,.72);
+  font-size: 10px;
+  line-height: 1.75;
+}
+.trade-invitation-offer {
+  position: relative;
+  display: grid;
+  grid-template-columns: 1.05fr .95fr;
+  gap: 0;
+  margin: 0 -21px;
+  padding: 16px 21px 15px;
+  background: var(--trade-cream);
+  color: var(--ink);
+}
+.trade-invitation-price,
+.trade-invitation-minimum {
+  display: grid;
+  align-content: center;
+  gap: 4px;
+  min-width: 0;
+}
+.trade-invitation-price { padding-right: 17px; }
+.trade-invitation-minimum {
+  padding-left: 18px;
+  border-left: 1px solid rgba(51,33,42,.17);
+}
+.trade-invitation-label {
+  color: #866b5b;
+  font-size: 7px;
+  font-weight: 800;
+  letter-spacing: .14em;
+}
+.trade-invitation-amount {
+  display: flex;
+  align-items: baseline;
+  gap: 5px;
+  color: var(--plum);
+  white-space: nowrap;
+}
+.trade-invitation-amount > span {
+  font-family: var(--sans);
+  font-size: 12px;
+  font-weight: 700;
+}
+.trade-invitation-amount strong {
+  font-family: var(--sans);
+  font-size: 30px;
+  font-weight: 600;
+  letter-spacing: -.055em;
+  line-height: 1.1;
+}
+.trade-invitation-minimum > strong {
+  color: var(--plum);
+  font-family: var(--sans);
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -.04em;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+.trade-invitation-minimum > strong small {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0;
+}
+.trade-invitation-caption {
+  color: #826e63;
+  font-size: 8px;
+  line-height: 1.4;
+}
+.trade-invitation-bottom {
+  justify-content: space-between;
+  gap: 12px;
+  padding-top: 15px;
+  color: #f3d3b4;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+.trade-invitation-arrow {
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  flex: 0 0 32px;
+  border: 1px solid rgba(243,211,180,.58);
+  border-radius: 50%;
+  color: #f3d3b4;
+  font-size: 11px;
+  transition: color .25s ease, background .25s ease, transform .25s ease;
+}
+.trade-invitation:hover .trade-invitation-arrow,
+.trade-invitation:focus-visible .trade-invitation-arrow {
+  transform: rotate(45deg);
+  background: #f3d3b4;
+  color: var(--plum);
+}
+@media (max-width: 420px) {
+  .trade-invitation { margin-top: 23px; padding: 17px 17px 15px; }
+  .trade-invitation-topline { padding-bottom: 13px; }
+  .trade-invitation-main { padding: 19px 0 17px; }
+  .trade-invitation-main > strong { font-size: 31px; }
+  .trade-invitation-offer { margin-inline: -17px; padding: 14px 17px 13px; }
+  .trade-invitation-price { padding-right: 10px; }
+  .trade-invitation-minimum { padding-left: 12px; }
+  .trade-invitation-amount strong { font-size: 27px; }
+  .trade-invitation-minimum > strong { font-size: 20px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .trade-invitation,
+  .trade-invitation-arrow { transition: none; }
 }

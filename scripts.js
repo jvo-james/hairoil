@@ -86,7 +86,7 @@
       <div class="header-side header-side-left"><button class="menu-trigger" type="button" data-open-menu aria-label="Open navigation menu" aria-expanded="false"><span class="menu-bars" aria-hidden="true"><span></span><span></span></span><span class="menu-label">Menu</span></button></div>
       <a class="brand-lockup header-brand-lockup" href="index.html" aria-label="Hair Confidante by MB home"><img class="header-logo-img" src="${escapeHTML(IMAGES.logoMark || IMAGES.logo || 'images/logo.jpg')}" alt="" width="42" height="42"><span class="header-brand-copy"><span class="brand-name">HAIR CONFIDANTE</span><span class="brand-by">by MB</span></span></a>
       <nav class="header-desktop-nav" aria-label="Main navigation"><a href="index.html" data-header-link="home">Home</a><a href="product.html" data-header-link="product">Hair oil</a><a href="wholesale.html" data-header-link="wholesale">Wholesale</a></nav>
-      <div class="header-side header-side-right"><button class="track-trigger" type="button" data-open-track aria-label="Track order" title="Track order"><i class="fa-solid fa-box" aria-hidden="true"></i></button></div>
+      <div class="header-side header-side-right"><button class="track-trigger" type="button" data-open-track aria-label="Track order" title="Track order"><i class="fa-solid fa-box" aria-hidden="true"></i><span class="track-trigger-label">Track order</span></button></div>
     </div></header>`;
   }
 
@@ -94,17 +94,19 @@
     return `<footer class="site-footer"><div class="page-shell">
       <div class="footer-top"><div class="footer-brand"><a class="brand-lockup" href="index.html" aria-label="Hair Confidante by MB home" style="align-items:flex-start;text-align:left"><span class="brand-name">HAIR CONFIDANTE</span><span class="brand-by">by MB</span></a><p>Hair and scalp oil for everyday use, available in retail and wholesale quantities.</p><div class="footer-socials"><a href="https://www.instagram.com/_michellebediako/" target="_blank" rel="noopener noreferrer" aria-label="Instagram"><i class="fa-brands fa-instagram"></i></a><a href="https://www.tiktok.com/@_michellebediako" target="_blank" rel="noopener noreferrer" aria-label="TikTok"><i class="fa-brands fa-tiktok"></i></a><a href="https://www.snapchat.com/add/i.michyy" target="_blank" rel="noopener noreferrer" aria-label="Snapchat"><i class="fa-brands fa-snapchat"></i></a><a href="https://www.youtube.com/@michellebediakoo" target="_blank" rel="noopener noreferrer" aria-label="YouTube"><i class="fa-brands fa-youtube"></i></a></div></div>
       <div class="footer-newsletter"><p class="eyebrow">NEWS & PRODUCT UPDATES</p><h3>Product updates.</h3><p>Receive product news, availability updates and brand announcements.</p><form class="newsletter-form" data-newsletter-form novalidate><input type="email" name="email" placeholder="Your email address" aria-label="Your email address" maxlength="160" required><input class="honeypot" type="text" name="website" tabindex="-1" autocomplete="off" aria-hidden="true"><button type="submit">Sign me up <i class="fa-solid fa-arrow-right"></i></button></form></div></div>
-      <nav class="footer-links" aria-label="Footer navigation"><a href="product.html">Shop Hair Oil</a><a href="wholesale.html">Wholesale</a><a href="index.html#how-to-use">How to use</a><a href="index.html#instagram">Instagram</a><a href="tel:0593231032">059 323 1032</a><button type="button" class="footer-contact-link" data-open-contact>Contact</button></nav>
-      <div class="footer-bottom"><span>© <span data-current-year>${new Date().getFullYear()}</span> Hair Confidante by MB. Made with care.</span><span class="footer-credit"><span class="footer-credit-label">WEBSITE BY</span><a href="https://www.snapchat.com/add/jvo_james" target="_blank" rel="noopener noreferrer"><i class="fa-solid fa-code" aria-hidden="true"></i> jvo_james <i class="fa-solid fa-arrow-up-right-from-square footer-credit-arrow" aria-hidden="true"></i></a></span><span class="footer-socials"><a href="https://www.snapchat.com/add/jvo_james" target="_blank" rel="noopener noreferrer" aria-label="Website creator on Snapchat"><i class="fa-brands fa-snapchat"></i></a></span></div>
+      <nav class="footer-links" aria-label="Footer navigation"><a href="product.html">Shop Hair Oil</a><a href="wholesale.html">Wholesale</a><a href="index.html#how-to-use">How to use</a><a href="index.html#instagram">Instagram</a><a href="https://wa.me/233594121246" target="_blank" rel="noopener noreferrer">WhatsApp</a><button type="button" class="footer-contact-link" data-open-contact-drawer>Contact</button></nav>
+      <div class="footer-bottom"><span>© <span data-current-year>${new Date().getFullYear()}</span> Hair Confidante by MB. Made with care.</span><span class="footer-credit"><button type="button" data-open-credit-modal aria-haspopup="dialog"><span class="footer-credit-label">WEBSITE BY</span><span class="footer-credit-name"><i class="fa-solid fa-code" aria-hidden="true"></i> jvo_james <i class="fa-solid fa-arrow-up-right-from-square footer-credit-arrow" aria-hidden="true"></i></span></button></span></div>
     </div></footer>`;
   }
 
   function overlayMarkup() {
     return `<div class="overlay-backdrop" data-overlay-backdrop></div>
-      <aside class="site-drawer site-drawer-menu" data-menu-drawer aria-label="Site navigation" aria-hidden="true"><div class="drawer-top"><div class="drawer-brand"><strong>HAIR CONFIDANTE</strong><small>by MB</small></div><button type="button" class="icon-button" data-close-overlays aria-label="Close menu"><i class="fa-solid fa-xmark"></i></button></div><p class="drawer-kicker">FIND YOUR WAY</p><nav class="menu-links"><a href="index.html">Home <i class="fa-solid fa-arrow-up-right-from-square"></i></a><a href="product.html">Hair oil <i class="fa-solid fa-arrow-up-right-from-square"></i></a><a href="wholesale.html">Wholesale <span>FOR BUSINESS</span></a><button type="button" class="menu-track-link" data-open-track>Track order <i class="fa-solid fa-box" aria-hidden="true"></i></button><a href="index.html#how-to-use">How to use <i class="fa-solid fa-arrow-up-right-from-square"></i></a><a href="index.html#instagram">Instagram <i class="fa-solid fa-arrow-up-right-from-square"></i></a></nav><div class="drawer-footer">Questions? Call <a href="tel:0593231032">059 323 1032</a></div></aside>
+      <aside class="site-drawer site-drawer-menu" data-menu-drawer aria-label="Site navigation" aria-hidden="true"><div class="drawer-top"><div class="drawer-brand"><strong>HAIR CONFIDANTE</strong><small>by MB</small></div><button type="button" class="icon-button" data-close-overlays aria-label="Close menu"><i class="fa-solid fa-xmark"></i></button></div><p class="drawer-kicker">FIND YOUR WAY</p><nav class="menu-links"><a href="index.html">Home <i class="fa-solid fa-arrow-up-right-from-square"></i></a><a href="product.html">Hair oil <i class="fa-solid fa-arrow-up-right-from-square"></i></a><a href="wholesale.html">Wholesale <span>FOR BUSINESS</span></a><button type="button" class="menu-track-link" data-open-track>Track order <i class="fa-solid fa-box" aria-hidden="true"></i></button><a href="index.html#how-to-use">How to use <i class="fa-solid fa-arrow-up-right-from-square"></i></a><button type="button" class="menu-track-link" data-open-contact-drawer>Contact <i class="fa-solid fa-arrow-up-right-from-square" aria-hidden="true"></i></button></nav><div class="drawer-footer">Need a hand? <a href="https://wa.me/233594121246" target="_blank" rel="noopener noreferrer">Chat with us on WhatsApp <i class="fa-brands fa-whatsapp" aria-hidden="true"></i></a></div></aside>
+      <aside class="site-drawer site-drawer-contact" data-contact-drawer aria-label="Contact Hair Confidante" aria-hidden="true"><div class="drawer-top"><div class="drawer-brand"><strong>LET'S CONNECT</strong><small>A real person is just a message away.</small></div><button type="button" class="icon-button" data-close-overlays aria-label="Close contact options"><i class="fa-solid fa-xmark"></i></button></div><div class="contact-drawer-intro"><p class="eyebrow">CONTACT HAIR CONFIDANTE</p><h2>A little question?<br><em>Let's talk.</em></h2><p>Choose the channel that feels easiest. We would love to hear from you.</p></div><a class="contact-choice contact-choice-whatsapp" href="https://wa.me/233594121246" target="_blank" rel="noopener noreferrer"><span class="contact-choice-icon"><i class="fa-brands fa-whatsapp" aria-hidden="true"></i></span><span class="contact-choice-copy"><strong>WhatsApp</strong><small>Chat with us directly</small></span><i class="fa-solid fa-arrow-up-right-from-square" aria-hidden="true"></i></a><a class="contact-choice" href="https://www.snapchat.com/add/i.michyy" target="_blank" rel="noopener noreferrer"><span class="contact-choice-icon"><i class="fa-brands fa-snapchat" aria-hidden="true"></i></span><span class="contact-choice-copy"><strong>Snapchat</strong><small>Say hello on Snapchat</small></span><i class="fa-solid fa-arrow-up-right-from-square" aria-hidden="true"></i></a><button type="button" class="contact-drawer-note" data-open-contact>Prefer email? Send us a note <i class="fa-solid fa-arrow-right" aria-hidden="true"></i></button></aside>
       <aside class="site-drawer site-drawer-track" data-track-drawer aria-label="Track your order" aria-hidden="true"><div class="drawer-top"><div class="drawer-brand"><strong>ORDER TRACKER</strong><small>Track your order status.</small></div><button type="button" class="icon-button" data-close-overlays aria-label="Close order tracker"><i class="fa-solid fa-xmark"></i></button></div><div class="track-drawer-heading"><p class="eyebrow">ORDER TRACKING</p><h2>Where is your<br><em>order?</em></h2><p>Enter the order number from your email and the email address used at checkout.</p></div><form class="track-form" data-track-form novalidate><label><span>Order number</span><input name="orderNumber" type="text" placeholder="HC-00001" autocapitalize="characters" maxlength="30" required></label><label><span>Email address</span><input name="email" type="email" placeholder="you@example.com" maxlength="160" required></label><button class="button button-dark button-full" type="submit"><span>Find my order</span><i class="fa-solid fa-arrow-right"></i></button><div class="checkout-alert" data-track-error role="status" hidden></div></form><div class="track-results" data-track-results hidden></div></aside>
       <div class="modal-wrap" data-review-modal aria-hidden="true"><div class="modal-panel" role="dialog" aria-modal="true" aria-labelledby="review-modal-title"><div class="modal-head"><div><p class="eyebrow">A NOTE FROM YOU</p><h2 id="review-modal-title">Leave a review.</h2></div><button type="button" class="icon-button" data-close-review aria-label="Close review form"><i class="fa-solid fa-xmark"></i></button></div><div class="modal-body"><form class="review-form" data-review-form novalidate><div><div class="rating-prompt"><span>Your rating</span><span class="rating-helper" data-rating-helper>Choose a star rating</span></div><div class="rating-stars" role="radiogroup" aria-label="Rate the product" data-rating-stars>${[1,2,3,4,5].map(n=>`<button type="button" role="radio" aria-checked="false" data-rating="${n}" aria-label="${n} star${n===1?'':'s'}">★</button>`).join('')}</div><input type="hidden" name="rating" value=""></div><label><span>Your name</span><input type="text" name="name" autocomplete="name" minlength="2" maxlength="70" placeholder="How should we credit you?" required></label><label><span>Email address</span><input type="email" name="email" autocomplete="email" maxlength="160" placeholder="We will not publish this" required></label><label><span>Your experience</span><textarea name="review" rows="4" minlength="12" maxlength="1200" placeholder="Tell us what you noticed after using the oil..." required></textarea></label><input class="honeypot" type="text" name="website" tabindex="-1" autocomplete="off" aria-hidden="true"><button type="submit" class="button button-dark button-full"><span>Send my review</span><i class="fa-solid fa-arrow-right"></i></button><p style="margin:0;color:var(--ink-faint);font-size:10px">Reviews are checked before they appear. Share your own honest experience.</p></form><div class="review-success" data-review-success hidden><span class="success-icon"><i class="fa-solid fa-check"></i></span><h3>That means a lot.</h3><p style="color:var(--ink-soft);font-size:12px">Your review has been received and is waiting for approval.</p><button type="button" class="button button-dark" data-close-review>Lovely, thanks</button></div></div></div></div>
-      <div class="modal-wrap" data-contact-modal aria-hidden="true"><div class="modal-panel" role="dialog" aria-modal="true" aria-labelledby="contact-modal-title"><div class="modal-head"><div><p class="eyebrow">WE ARE LISTENING</p><h2 id="contact-modal-title">Send a note.</h2></div><button type="button" class="icon-button" data-close-contact aria-label="Close contact form"><i class="fa-solid fa-xmark"></i></button></div><div class="modal-body"><form class="review-form" data-contact-form novalidate><label><span>Your name</span><input type="text" name="name" autocomplete="name" minlength="2" maxlength="70" required></label><label><span>Email address</span><input type="email" name="email" autocomplete="email" maxlength="160" required></label><label><span>Phone number <small>Optional</small></span><input type="tel" name="phone" autocomplete="tel" maxlength="25"></label><label><span>Your message</span><textarea name="message" rows="4" minlength="10" maxlength="2000" required></textarea></label><input class="honeypot" type="text" name="company_site" tabindex="-1" autocomplete="off" aria-hidden="true"><div class="checkout-alert" data-contact-error role="status" hidden></div><button type="submit" class="button button-dark button-full"><span>Send message</span><i class="fa-solid fa-arrow-right"></i></button></form></div></div></div>`;
+      <div class="modal-wrap" data-contact-modal aria-hidden="true"><div class="modal-panel" role="dialog" aria-modal="true" aria-labelledby="contact-modal-title"><div class="modal-head"><div><p class="eyebrow">WE ARE LISTENING</p><h2 id="contact-modal-title">Send a note.</h2></div><button type="button" class="icon-button" data-close-contact aria-label="Close contact form"><i class="fa-solid fa-xmark"></i></button></div><div class="modal-body"><form class="review-form" data-contact-form novalidate><label><span>Your name</span><input type="text" name="name" autocomplete="name" minlength="2" maxlength="70" required></label><label><span>Email address</span><input type="email" name="email" autocomplete="email" maxlength="160" required></label><label><span>Phone number <small>Optional</small></span><input type="tel" name="phone" autocomplete="tel" maxlength="25"></label><label><span>Your message</span><textarea name="message" rows="4" minlength="10" maxlength="2000" required></textarea></label><input class="honeypot" type="text" name="company_site" tabindex="-1" autocomplete="off" aria-hidden="true"><div class="checkout-alert" data-contact-error role="status" hidden></div><button type="submit" class="button button-dark button-full"><span>Send message</span><i class="fa-solid fa-arrow-right"></i></button></form></div></div></div>
+      <div class="modal-wrap credit-modal-wrap" data-credit-modal aria-hidden="true"><div class="modal-panel credit-modal-panel" role="dialog" aria-modal="true" aria-labelledby="credit-modal-title"><div class="credit-modal-top"><span class="credit-modal-orbit"><i class="fa-solid fa-code" aria-hidden="true"></i></span><button type="button" class="icon-button" data-close-credit aria-label="Close developer contact options"><i class="fa-solid fa-xmark"></i></button></div><div class="credit-modal-copy"><p class="eyebrow">THE PERSON BEHIND THE PIXELS</p><h2 id="credit-modal-title">Made by <em>jvo_james.</em></h2><p>Have a project in mind, spotted something clever, or just want to say hello? Pick your preferred way to reach me.</p></div><div class="credit-contact-options"><a class="credit-contact-option credit-option-snapchat" href="https://www.snapchat.com/add/jvo_james" target="_blank" rel="noopener noreferrer"><span class="credit-contact-icon"><i class="fa-brands fa-snapchat" aria-hidden="true"></i></span><span><strong>Snapchat</strong><small>Find me on Snap</small></span><i class="fa-solid fa-arrow-up-right-from-square" aria-hidden="true"></i></a><a class="credit-contact-option credit-option-whatsapp" href="https://wa.me/233594121246" target="_blank" rel="noopener noreferrer"><span class="credit-contact-icon"><i class="fa-brands fa-whatsapp" aria-hidden="true"></i></span><span><strong>WhatsApp</strong><small>Let's talk about your next idea</small></span><i class="fa-solid fa-arrow-up-right-from-square" aria-hidden="true"></i></a></div><p class="credit-modal-footnote">GOOD WORK STARTS WITH A CONVERSATION.</p></div></div>`;
   }
 
   function initHeaderScroll(header) {
@@ -148,31 +150,33 @@
     const backdrop = document.querySelector('[data-overlay-backdrop]');
     const menu = document.querySelector('[data-menu-drawer]');
     const track = document.querySelector('[data-track-drawer]');
+    const contactDrawer = document.querySelector('[data-contact-drawer]');
     function closeDrawers() {
       backdrop?.classList.remove('is-open');
-      menu?.classList.remove('is-open'); track?.classList.remove('is-open');
-      menu?.setAttribute('aria-hidden', 'true'); track?.setAttribute('aria-hidden', 'true');
+      [menu, track, contactDrawer].forEach(drawer => { drawer?.classList.remove('is-open'); drawer?.setAttribute('aria-hidden', 'true'); });
       document.querySelector('[data-open-menu]')?.setAttribute('aria-expanded', 'false');
       setBodyOverlay(false);
     }
     function openDrawer(which) {
       closeDrawers();
       backdrop?.classList.add('is-open');
-      const drawer = which === 'menu' ? menu : track;
+      const drawer = which === 'menu' ? menu : which === 'contact' ? contactDrawer : track;
       drawer?.classList.add('is-open'); drawer?.setAttribute('aria-hidden', 'false');
       if (which === 'menu') document.querySelector('[data-open-menu]')?.setAttribute('aria-expanded', 'true');
       setBodyOverlay(true);
-      setTimeout(() => drawer?.querySelector('input,button:not([data-close-overlays])')?.focus({ preventScroll: true }), 160);
+      setTimeout(() => drawer?.querySelector('input,button:not([data-close-overlays]),a')?.focus({ preventScroll: true }), 160);
     }
     document.querySelector('[data-open-menu]')?.addEventListener('click', () => openDrawer('menu'));
-    document.querySelectorAll('[data-open-track]').forEach(button => button.addEventListener('click', () => { closeReviewModal(); closeContactModal(); openDrawer('track'); }));
+    document.querySelectorAll('[data-open-track]').forEach(button => button.addEventListener('click', () => { closeReviewModal(); closeContactModal(); closeCreditModal(); openDrawer('track'); }));
+    document.querySelectorAll('[data-open-contact-drawer]').forEach(button => button.addEventListener('click', () => { closeReviewModal(); closeContactModal(); closeCreditModal(); openDrawer('contact'); }));
     document.querySelectorAll('[data-close-overlays]').forEach(button => button.addEventListener('click', closeDrawers));
     backdrop?.addEventListener('click', closeDrawers);
-    document.addEventListener('keydown', event => { if (event.key === 'Escape') { closeDrawers(); closeReviewModal(); closeContactModal(); } });
+    document.addEventListener('keydown', event => { if (event.key === 'Escape') { closeDrawers(); closeReviewModal(); closeContactModal(); closeCreditModal(); } });
     document.querySelectorAll('.menu-links a').forEach(link => link.addEventListener('click', closeDrawers));
     window.HC_UI = { closeDrawers, openDrawer, notify, api, withButtonLoading };
     initReviewModal();
     initContactModal();
+    initCreditModal();
     initTrackForm();
     initNewsletter();
     if (isHome) { initStepsCarousel(); initStorySlider(); initBeforeAfter(); initInstagram(); }
@@ -249,7 +253,7 @@
     const modal = document.querySelector('[data-contact-modal]');
     const form = document.querySelector('[data-contact-form]');
     if (!modal || !form) return;
-    document.querySelectorAll('[data-open-contact]').forEach(button => button.addEventListener('click', () => { modalToggle(modal, true); setTimeout(() => form.querySelector('input')?.focus({ preventScroll: true }), 80); }));
+    document.querySelectorAll('[data-open-contact]').forEach(button => button.addEventListener('click', () => { window.HC_UI?.closeDrawers(); modalToggle(modal, true); setTimeout(() => form.querySelector('input')?.focus({ preventScroll: true }), 80); }));
     modal.querySelectorAll('[data-close-contact]').forEach(button => button.addEventListener('click', closeContactModal));
     modal.addEventListener('click', event => { if (event.target === modal) closeContactModal(); });
     form.addEventListener('submit', async event => {
@@ -262,6 +266,21 @@
         form.reset(); closeContactModal(); notify(result.message || 'Your note has been sent.');
       } catch (error) { alert.textContent = error.message; alert.hidden = false; }
     });
+  }
+
+  function closeCreditModal() { const modal = document.querySelector('[data-credit-modal]'); if (modal) modalToggle(modal, false); }
+
+  function initCreditModal() {
+    const modal = document.querySelector('[data-credit-modal]');
+    if (!modal) return;
+    document.querySelectorAll('[data-open-credit-modal]').forEach(button => button.addEventListener('click', () => {
+      window.HC_UI?.closeDrawers();
+      closeContactModal();
+      modalToggle(modal, true);
+      setTimeout(() => modal.querySelector('a')?.focus({ preventScroll: true }), 80);
+    }));
+    modal.querySelectorAll('[data-close-credit]').forEach(button => button.addEventListener('click', closeCreditModal));
+    modal.addEventListener('click', event => { if (event.target === modal) closeCreditModal(); });
   }
 
   function initTrackForm() {
@@ -548,6 +567,20 @@
     if (!form) return;
     const mobileOrderToggle = document.querySelector('[data-mobile-order-toggle]');
     const orderSummaryPanel = document.querySelector('.order-summary-panel');
+    const summaryAnchor = document.querySelector('[data-order-summary-anchor]');
+    const checkoutLayout = document.querySelector('.checkout-layout');
+    const consentLabel = form.querySelector('.consent-check');
+    const summaryBreakpoint = window.matchMedia('(max-width: 760px)');
+    const placeOrderSummary = () => {
+      if (!orderSummaryPanel) return;
+      if (summaryBreakpoint.matches && consentLabel && orderSummaryPanel.parentElement !== form) {
+        form.insertBefore(orderSummaryPanel, consentLabel);
+      } else if (!summaryBreakpoint.matches && checkoutLayout && summaryAnchor?.parentElement === checkoutLayout && orderSummaryPanel.parentElement !== checkoutLayout) {
+        summaryAnchor.insertAdjacentElement('afterend', orderSummaryPanel);
+      }
+    };
+    placeOrderSummary();
+    summaryBreakpoint.addEventListener?.('change', placeOrderSummary);
     mobileOrderToggle?.addEventListener('click', () => {
       const expanded = orderSummaryPanel?.classList.toggle('is-expanded') || false;
       mobileOrderToggle.setAttribute('aria-expanded', String(expanded));
@@ -825,6 +858,12 @@
     const mobileQuantity = document.querySelector('[data-mobile-order-quantity]');
     const mobileMode = document.querySelector('[data-mobile-order-mode]');
     if (mobileTotal) mobileTotal.textContent = money(amountDue);
+    const mobileSubtotal = document.querySelector('[data-mobile-order-subtotal]');
+    const mobileFee = document.querySelector('[data-mobile-order-fee]');
+    const mobilePreviewTotal = document.querySelector('[data-mobile-order-preview-total]');
+    if (mobileSubtotal) mobileSubtotal.textContent = money(total);
+    if (mobileFee) mobileFee.textContent = money(processingFee);
+    if (mobilePreviewTotal) mobilePreviewTotal.textContent = money(amountDue);
     if (mobileQuantity) mobileQuantity.textContent = `${quantity} item${quantity === 1 ? '' : 's'}`;
     if (mobileMode) mobileMode.textContent = mode === 'wholesale' ? 'WHOLESALE' : 'RETAIL';
     const back = document.querySelector('[data-back-to-product]');

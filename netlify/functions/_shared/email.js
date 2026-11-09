@@ -61,7 +61,7 @@ export function buildEmail(type, data = {}) {
     },
     order_cancelled: {
       subject: `An update on order ${orderNo}`,
-      html: shell({ eyebrow: 'ORDER UPDATE', title: 'Your order was cancelled.', intro: `Hi ${name}, order ${orderNo} has been cancelled by the store. If you believe this was a mistake or need help with a refund, please contact us.`, content: orderRows(order) + `<p style="margin:20px 0 0">Please reply to this email or contact 0593231032 for assistance.</p>`, buttonText: 'Visit Hair Confidante', buttonUrl: orderUrl() })
+      html: shell({ eyebrow: 'ORDER UPDATE', title: 'Your order was cancelled.', intro: `Hi ${name}, order ${orderNo} has been cancelled by the store. If you believe this was a mistake or need help with a refund, please contact us.`, content: orderRows(order) + `<p style="margin:20px 0 0">Please reply to this email or <a href="https://wa.me/233594121246" style="color:#76503f;font-weight:700">message us on WhatsApp</a> for assistance.</p>`, buttonText: 'Visit Hair Confidante', buttonUrl: orderUrl() })
     },
     payment_failed: {
       subject: `Payment update for order ${orderNo}`,
